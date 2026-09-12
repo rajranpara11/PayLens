@@ -1,0 +1,13 @@
+# Local/dev overrides. Credentials still come from the environment — never commit secrets.
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/paylens}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    com.paylens: INFO
+    org.flywaydb: INFO
