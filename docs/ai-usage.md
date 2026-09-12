@@ -20,3 +20,11 @@ Intentional AI use for the PayLens assessment. Updated as work proceeds.
 - Import pipelines, payroll, event sourcing, CQRS frameworks.
 
 **Human owns:** scope cuts, currency rule, session-vs-JWT, implementation order.
+
+## 2026-09-12 — Architecture document (no application code)
+
+**Intent:** Capture runtime topology, package layering, API/auth/error/logging/test/deploy, and explicit non-use of microservices, Kafka, Redis, Kubernetes, Elasticsearch.
+
+**Kept:** Modular monolith; cookie session + CSRF; SQL aggregates; Compose of web/api/db.
+
+**Rejected:** Extra runtime infrastructure “for scale” at 10k employees.
