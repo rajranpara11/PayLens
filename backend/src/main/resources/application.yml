@@ -3,10 +3,7 @@ spring:
     name: paylens-api
   profiles:
     default: dev
-  datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/paylens}
-    username: ${DATABASE_USERNAME:}
-    password: ${DATABASE_PASSWORD:}
+    active: dev
   jpa:
     open-in-view: false
     hibernate:
@@ -20,7 +17,7 @@ spring:
     locations: classpath:db/migration
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8081}
 
 management:
   endpoints:
@@ -39,3 +36,11 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
+
+# Seeding is OFF unless profile "seed" is active (or paylens.seed.enabled=true is set explicitly).
+paylens:
+  seed:
+    enabled: false
+    employee-count: 10000
+    random-seed: 42
+    batch-size: 500

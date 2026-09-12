@@ -1,0 +1,12 @@
+# Activate with: --spring.profiles.active=dev,seed
+# Does NOT enable itself on normal prod/dev starts.
+paylens:
+  seed:
+    enabled: true
+    employee-count: 10000
+    random-seed: 42
+    batch-size: 500
+
+logging:
+  level:
+    com.paylens.seed: INFO
