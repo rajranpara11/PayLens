@@ -1,0 +1,19 @@
+.dialog-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem 1rem;
+  min-width: min(100%, 28rem);
+  padding-top: 0.35rem;
+}
+
+@media (min-width: 640px) {
+  .dialog-grid {
+    grid-template-columns: 1fr 1fr;
+    min-width: 36rem;
+  }
+}
+
+button mat-spinner {
+  display: inline-block;
+  margin: 0 auto;
+}

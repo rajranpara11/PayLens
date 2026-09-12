@@ -1,0 +1,18 @@
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: min(100%, 24rem);
+  padding-top: 0.25rem;
+}
+
+.hint {
+  margin: 0 0 0.75rem;
+  color: #5f6368;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.full {
+  width: 100%;
+}

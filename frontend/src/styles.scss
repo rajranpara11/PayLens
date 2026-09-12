@@ -1,3 +1,30 @@
+/* PayLens design tokens — cool slate + teal HR system */
+:root {
+  --pl-ink: #12263a;
+  --pl-ink-soft: #3a4f63;
+  --pl-muted: #5c6b7a;
+  --pl-accent: #0f766e;
+  --pl-accent-strong: #0b5f59;
+  --pl-accent-soft: #d9f2ef;
+  --pl-accent-mid: #14b8a6;
+  --pl-surface: #ffffff;
+  --pl-surface-2: #f7f9fb;
+  --pl-border: #d7e0ea;
+  --pl-border-strong: #b8c5d4;
+  --pl-danger: #b42318;
+  --pl-danger-soft: #fdecea;
+  --pl-warn: #9a6700;
+  --pl-warn-soft: #fff6db;
+  --pl-ok: #0f6b3c;
+  --pl-ok-soft: #e4f5ea;
+  --pl-shadow: 0 1px 2px rgba(18, 38, 58, 0.04), 0 8px 24px rgba(18, 38, 58, 0.06);
+  --pl-radius: 12px;
+  --pl-radius-sm: 8px;
+  --pl-font: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --pl-display: 'Fraunces', Georgia, serif;
+  --pl-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
 html,
 body {
   height: 100%;
@@ -5,16 +32,141 @@ body {
 
 body {
   margin: 0;
-  font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
-  background: #f6f8fb;
-  color: #1f1f1f;
+  font-family: var(--pl-font);
+  color: var(--pl-ink);
+  background-color: #e8eef4;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(15, 118, 110, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(18, 38, 58, 0.08), transparent 50%),
+    linear-gradient(180deg, #e9eef3 0%, #e4ebf2 100%);
+  background-attachment: fixed;
 }
 
 * {
   box-sizing: border-box;
 }
 
+code {
+  font-family: var(--pl-mono);
+  font-size: 0.9em;
+}
+
+/* Shared status chip — soft rectangle, not pill cluster */
+.pl-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: #eef2f6;
+  color: var(--pl-ink-soft);
+  border: 1px solid transparent;
+}
+
+.pl-status[data-status='ACTIVE'] {
+  background: var(--pl-ok-soft);
+  color: var(--pl-ok);
+  border-color: rgba(15, 107, 60, 0.12);
+}
+
+.pl-status[data-status='ON_LEAVE'] {
+  background: var(--pl-warn-soft);
+  color: var(--pl-warn);
+  border-color: rgba(154, 103, 0, 0.14);
+}
+
+.pl-status[data-status='TERMINATED'] {
+  background: var(--pl-danger-soft);
+  color: var(--pl-danger);
+  border-color: rgba(180, 35, 24, 0.12);
+}
+
+.pl-panel {
+  background: var(--pl-surface);
+  border: 1px solid var(--pl-border);
+  border-radius: var(--pl-radius);
+  box-shadow: var(--pl-shadow);
+}
+
+.pl-numeric {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--pl-mono);
+  font-size: 0.92em;
+}
+
+/* Material density / outline polish */
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-shape: 10px;
+}
+
+.mat-mdc-outlined-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-protected-button {
+  --mdc-filled-button-container-shape: 10px;
+  --mdc-outlined-button-container-shape: 10px;
+  --mdc-protected-button-container-shape: 10px;
+  letter-spacing: 0.01em;
+  font-weight: 600 !important;
+}
+
+.mat-mdc-unelevated-button.mat-primary {
+  --mdc-filled-button-container-color: var(--pl-accent);
+  --mdc-filled-button-label-text-color: #fff;
+}
+
+.mat-mdc-outlined-button.mat-primary {
+  --mdc-outlined-button-label-text-color: var(--pl-accent-strong);
+  --mdc-outlined-button-outline-color: rgba(15, 118, 110, 0.35);
+}
+
+.mat-mdc-standard-chip {
+  --mdc-chip-label-text-weight: 600;
+}
+
+.mat-mdc-table {
+  background: transparent;
+}
+
+.mat-mdc-header-row {
+  background: var(--pl-surface-2);
+}
+
+.mat-mdc-header-cell {
+  color: var(--pl-muted) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase;
+  border-bottom-color: var(--pl-border) !important;
+}
+
+.mat-mdc-cell {
+  color: var(--pl-ink);
+  border-bottom-color: #e8eef4 !important;
+  font-size: 0.9rem !important;
+}
+
+.mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom: none !important;
+}
+
+.mat-mdc-paginator {
+  background: var(--pl-surface-2) !important;
+  border-top: 1px solid var(--pl-border);
+}
+
+.mat-mdc-progress-bar {
+  --mdc-linear-progress-active-indicator-color: var(--pl-accent);
+  --mdc-linear-progress-track-color: rgba(15, 118, 110, 0.12);
+}
+
 .paylens-error-snack {
   --mdc-snackbar-container-color: #8c1d18;
   --mdc-snackbar-supporting-text-color: #fff;
+}
+
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: 16px !important;
 }

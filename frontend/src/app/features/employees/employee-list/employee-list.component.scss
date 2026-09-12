@@ -1,0 +1,148 @@
+.filters-panel {
+  padding: 1rem 1.1rem 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.5fr) repeat(4, minmax(8.5rem, 1fr)) auto;
+  gap: 0.65rem 0.85rem;
+  align-items: start;
+}
+
+.search {
+  min-width: 0;
+}
+
+.clear-btn {
+  height: 56px;
+  align-self: start;
+}
+
+.table-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.table-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--pl-border);
+  background: linear-gradient(180deg, #fbfcfd, var(--pl-surface-2));
+  color: var(--pl-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.loading-label {
+  color: var(--pl-accent);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  min-height: 14rem;
+}
+
+.employee-table {
+  width: 100%;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.clickable-row:hover {
+  background: rgba(15, 118, 110, 0.05);
+}
+
+.code,
+.currency {
+  font-family: var(--pl-mono);
+  font-size: 0.82rem;
+  color: var(--pl-ink-soft);
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 10rem;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 8px;
+  background: var(--pl-accent-soft);
+  color: var(--pl-accent-strong);
+  font-size: 0.68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--pl-ink);
+}
+
+.empty-state {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--pl-muted);
+}
+
+.empty-state mat-icon {
+  font-size: 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--pl-accent);
+  margin-bottom: 0.35rem;
+}
+
+.empty-state h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--pl-display);
+  font-size: 1.2rem;
+  color: var(--pl-ink);
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search {
+    grid-column: 1 / -1;
+  }
+
+  .clear-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,165 @@
+<app-page-header
+  eyebrow="Profile"
+  [title]="employee ? fullName(employee) : 'Employee detail'"
+  [subtitle]="employee ? employee.employeeCode + ' · ' + employee.department.name : ''"
+>
+  <a mat-stroked-button routerLink="/employees">
+    <mat-icon>arrow_back</mat-icon>
+    Back
+  </a>
+  @if (employee) {
+    <button mat-stroked-button type="button" (click)="editEmployee()">
+      <mat-icon>edit</mat-icon>
+      Edit
+    </button>
+    <button mat-flat-button color="primary" type="button" (click)="updateSalary()">
+      <mat-icon>payments</mat-icon>
+      Update salary
+    </button>
+    <button
+      mat-stroked-button
+      color="warn"
+      type="button"
+      (click)="deactivate()"
+      [disabled]="deactivating || employee.employmentStatus === 'TERMINATED'"
+    >
+      Deactivate
+    </button>
+  }
+</app-page-header>
+
+@if (loading) {
+  <div class="loading" aria-live="polite">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+} @else if (errorMessage) {
+  <app-error-state
+    title="Unable to load employee"
+    [message]="errorMessage"
+    actionLabel="Retry"
+    (action)="load()"
+  ></app-error-state>
+} @else if (employee) {
+  <section class="profile-banner pl-panel">
+    <div class="identity">
+      <span class="avatar" aria-hidden="true">{{ initials(employee) }}</span>
+      <div>
+        <h2>{{ fullName(employee) }}</h2>
+        <p>{{ employee.designation }} · {{ employee.department.name }}</p>
+      </div>
+    </div>
+    <span class="pl-status" [attr.data-status]="employee.employmentStatus">
+      {{ statusLabel(employee.employmentStatus) }}
+    </span>
+  </section>
+
+  <div class="detail-grid">
+    <section class="panel pl-panel">
+      <div class="panel-head">
+        <mat-icon>badge</mat-icon>
+        <h2>Personal information</h2>
+      </div>
+      <dl>
+        <div>
+          <dt>Employee ID</dt>
+          <dd class="mono">{{ employee.employeeCode }}</dd>
+        </div>
+        <div>
+          <dt>Name</dt>
+          <dd>{{ fullName(employee) }}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{ employee.email }}</dd>
+        </div>
+        <div>
+          <dt>Country</dt>
+          <dd>{{ countryLabel(employee.country) }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="panel pl-panel">
+      <div class="panel-head">
+        <mat-icon>work</mat-icon>
+        <h2>Employment information</h2>
+      </div>
+      <dl>
+        <div>
+          <dt>Department</dt>
+          <dd>{{ employee.department.name }}</dd>
+        </div>
+        <div>
+          <dt>Designation</dt>
+          <dd>{{ employee.designation }}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <span class="pl-status" [attr.data-status]="employee.employmentStatus">
+              {{ statusLabel(employee.employmentStatus) }}
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Joining date</dt>
+          <dd>{{ employee.joiningDate }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="panel pl-panel compensation">
+      <div class="panel-head">
+        <mat-icon>account_balance_wallet</mat-icon>
+        <h2>Current compensation</h2>
+      </div>
+      @if (employee.currentSalary; as salary) {
+        <p class="salary-figure pl-numeric">{{ salary.annualSalary | money: salary.currency }}</p>
+        <dl class="compact">
+          <div>
+            <dt>Currency</dt>
+            <dd class="mono">{{ salary.currency }}</dd>
+          </div>
+          <div>
+            <dt>Salary effective date</dt>
+            <dd>{{ salary.effectiveFrom }}</dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="muted">No current salary on file.</p>
+      }
+    </section>
+  </div>
+
+  <section class="panel pl-panel history">
+    <div class="panel-head">
+      <mat-icon>history</mat-icon>
+      <h2>Salary history</h2>
+    </div>
+    @if (history.length === 0) {
+      <p class="muted">No salary history available.</p>
+    } @else {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="history" class="history-table">
+          <ng-container matColumnDef="effectiveFrom">
+            <th mat-header-cell *matHeaderCellDef>Effective from</th>
+            <td mat-cell *matCellDef="let row">{{ row.effectiveFrom }}</td>
+          </ng-container>
+          <ng-container matColumnDef="annualSalary">
+            <th mat-header-cell *matHeaderCellDef>Annual salary</th>
+            <td mat-cell *matCellDef="let row" class="pl-numeric">
+              {{ row.annualSalary | money }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="currency">
+            <th mat-header-cell *matHeaderCellDef>Currency</th>
+            <td mat-cell *matCellDef="let row" class="mono">{{ row.currency }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: historyColumns"></tr>
+        </table>
+      </div>
+    }
+  </section>
+}

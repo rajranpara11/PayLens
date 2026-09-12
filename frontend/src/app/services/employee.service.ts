@@ -1,7 +1,8 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { SKIP_GLOBAL_ERROR_SNACK } from '../core/http/http-context.tokens';
 import { PageResponse } from '../models/api.model';
 import {
   CreateEmployeeRequest,
@@ -16,18 +17,26 @@ export class EmployeeService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/employees`;
 
-  list(params: EmployeeSearchParams = {}): Observable<PageResponse<Employee>> {
+  list(
+    params: EmployeeSearchParams = {},
+    options?: { skipErrorSnack?: boolean }
+  ): Observable<PageResponse<Employee>> {
     let httpParams = new HttpParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         httpParams = httpParams.set(key, String(value));
       }
     });
-    return this.http.get<PageResponse<Employee>>(this.baseUrl, { params: httpParams });
+    return this.http.get<PageResponse<Employee>>(this.baseUrl, {
+      params: httpParams,
+      context: this.context(options?.skipErrorSnack),
+    });
   }
 
-  getById(id: string): Observable<Employee> {
-    return this.http.get<Employee>(`${this.baseUrl}/${id}`);
+  getById(id: string, options?: { skipErrorSnack?: boolean }): Observable<Employee> {
+    return this.http.get<Employee>(`${this.baseUrl}/${id}`, {
+      context: this.context(options?.skipErrorSnack),
+    });
   }
 
   create(payload: CreateEmployeeRequest): Observable<Employee> {
@@ -50,7 +59,16 @@ export class EmployeeService {
     return this.http.put<Salary>(`${this.baseUrl}/${employeeId}/salary`, payload);
   }
 
-  getSalaryHistory(employeeId: string): Observable<Salary[]> {
-    return this.http.get<Salary[]>(`${this.baseUrl}/${employeeId}/salary-history`);
+  getSalaryHistory(
+    employeeId: string,
+    options?: { skipErrorSnack?: boolean }
+  ): Observable<Salary[]> {
+    return this.http.get<Salary[]>(`${this.baseUrl}/${employeeId}/salary-history`, {
+      context: this.context(options?.skipErrorSnack),
+    });
+  }
+
+  private context(skipErrorSnack?: boolean): HttpContext {
+    return new HttpContext().set(SKIP_GLOBAL_ERROR_SNACK, !!skipErrorSnack);
   }
 }

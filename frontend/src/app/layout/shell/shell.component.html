@@ -7,48 +7,67 @@
       [fixedInViewport]="isHandset"
       #drawer
     >
-      <div class="brand">
-        <span class="brand-mark">P</span>
-        <div>
-          <strong>PayLens</strong>
-          <small>Salary management</small>
+      <div class="nav-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-mark-inner">P</span>
+          </span>
+          <div class="brand-copy">
+            <strong>PayLens</strong>
+            <small>ACME compensation</small>
+          </div>
+        </div>
+
+        <p class="nav-label">Workspace</p>
+        <nav class="nav-list">
+          @for (item of navItems; track item.path) {
+            <a
+              class="nav-link"
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              (click)="isHandset && drawer.close()"
+            >
+              <mat-icon>{{ item.icon }}</mat-icon>
+              <span>{{ item.label }}</span>
+            </a>
+          }
+        </nav>
+
+        <div class="nav-footer">
+          <div class="persona">
+            <span class="persona-avatar" aria-hidden="true">HR</span>
+            <div>
+              <strong>HR Manager</strong>
+              <small>ACME Corp</small>
+            </div>
+          </div>
         </div>
       </div>
-
-      <mat-nav-list>
-        @for (item of navItems; track item.path) {
-          <a
-            mat-list-item
-            [routerLink]="item.path"
-            routerLinkActive="active"
-            (click)="isHandset && drawer.close()"
-          >
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
-          </a>
-        }
-      </mat-nav-list>
     </mat-sidenav>
 
-    <mat-sidenav-content>
-      <mat-toolbar class="shell-header" color="primary">
+    <mat-sidenav-content class="shell-main">
+      <header class="shell-header">
         @if (isHandset) {
           <button
             mat-icon-button
             type="button"
+            class="menu-btn"
             aria-label="Open navigation"
             (click)="drawer.toggle()"
           >
             <mat-icon>menu</mat-icon>
           </button>
         }
-        <span class="header-title">PayLens</span>
+        <div class="header-copy">
+          <span class="header-kicker">PayLens</span>
+          <span class="header-title">Salary management</span>
+        </div>
         <span class="header-spacer"></span>
-        <span class="header-role">HR Manager</span>
-      </mat-toolbar>
+        <span class="header-chip">Secure HR workspace</span>
+      </header>
 
       @if (loadingService.loading()) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <mat-progress-bar class="shell-progress" mode="indeterminate"></mat-progress-bar>
       }
 
       <main class="shell-content">

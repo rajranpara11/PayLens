@@ -1,72 +1,225 @@
 .shell {
   min-height: 100vh;
+  background: transparent;
 }
 
 .shell-nav {
-  width: 260px;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  width: 272px;
+  border: none;
+  background: linear-gradient(165deg, #16324a 0%, #12263a 48%, #0f3d3a 100%);
+  color: #e8eef4;
+}
+
+.nav-inner {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.25rem 1rem 1rem;
+  gap: 0.85rem;
+  padding: 1.5rem 1.25rem 1.25rem;
 }
 
 .brand-mark {
   display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #14b8a6, #0f766e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.brand-mark-inner {
+  margin: auto;
+  font-family: var(--pl-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #fff;
+}
+
+.brand-copy strong {
+  display: block;
+  font-family: var(--pl-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.brand-copy small {
+  color: rgba(232, 238, 244, 0.65);
+  font-size: 0.75rem;
+}
+
+.nav-label {
+  margin: 0.5rem 1.25rem 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 238, 244, 0.45);
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.75rem;
+  flex: 1;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  color: rgba(232, 238, 244, 0.78);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.nav-link mat-icon {
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  opacity: 0.85;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.nav-link.active {
+  background: rgba(20, 184, 166, 0.18);
+  color: #fff;
+  box-shadow: inset 3px 0 0 #14b8a6;
+}
+
+.nav-footer {
+  padding: 1rem 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: auto;
+}
+
+.persona {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.persona-avatar {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.5rem;
-  background: #0b57d0;
-  color: #fff;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: rgba(20, 184, 166, 0.25);
+  color: #9fe8df;
+  font-size: 0.7rem;
   font-weight: 700;
 }
 
-.brand strong {
+.persona strong {
   display: block;
-  font-size: 1.05rem;
+  font-size: 0.85rem;
+  color: #fff;
 }
 
-.brand small {
-  color: #5f6368;
+.persona small {
+  color: rgba(232, 238, 244, 0.55);
+  font-size: 0.72rem;
+}
+
+.shell-main {
+  background: transparent;
 }
 
 .shell-header {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(247, 249, 251, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(215, 224, 234, 0.9);
+}
+
+.menu-btn {
+  color: var(--pl-ink);
+}
+
+.header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.header-kicker {
+  font-family: var(--pl-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--pl-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .header-title {
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 0.75rem;
+  color: var(--pl-muted);
 }
 
 .header-spacer {
   flex: 1;
 }
 
-.header-role {
-  font-size: 0.875rem;
-  opacity: 0.9;
+.header-chip {
+  display: none;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--pl-border);
+  background: var(--pl-surface);
+  color: var(--pl-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.shell-progress {
+  position: sticky;
+  top: 4rem;
+  z-index: 3;
 }
 
 .shell-content {
-  padding: 1.25rem;
-  max-width: 1200px;
+  padding: 1.35rem 1.25rem 2.5rem;
+  max-width: 1280px;
   margin: 0 auto;
 }
 
-a.active {
-  background: rgba(11, 87, 208, 0.08);
-}
-
 @media (min-width: 960px) {
+  .header-chip {
+    display: inline-flex;
+  }
+
   .shell-content {
-    padding: 1.75rem 2rem 2.5rem;
+    padding: 1.85rem 2rem 3rem;
+  }
+
+  .shell-header {
+    padding: 0.85rem 2rem;
   }
 }
