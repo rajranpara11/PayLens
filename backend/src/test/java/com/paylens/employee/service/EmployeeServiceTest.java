@@ -22,16 +22,18 @@ import com.paylens.employee.repository.DepartmentRepository;
 import com.paylens.employee.repository.EmployeeRepository;
 import com.paylens.salary.entity.Salary;
 import com.paylens.salary.repository.SalaryRepository;
+import com.paylens.salary.service.SalaryService;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -52,9 +54,10 @@ class EmployeeServiceTest {
     @Mock
     private SalaryRepository salaryRepository;
 
-    @InjectMocks
-    private EmployeeService employeeService;
+    @Mock
+    private SalaryService salaryService;
 
+    private EmployeeService employeeService;
     private Department engineering;
     private UUID employeeId;
 
@@ -65,6 +68,14 @@ class EmployeeServiceTest {
         engineering.setCode("ENG");
         engineering.setName("Engineering");
         employeeId = UUID.randomUUID();
+        Clock clock = Clock.fixed(Instant.parse("2024-06-01T00:00:00Z"), ZoneOffset.UTC);
+        employeeService = new EmployeeService(
+                employeeRepository,
+                departmentRepository,
+                salaryRepository,
+                salaryService,
+                clock
+        );
     }
 
     @Test
@@ -79,20 +90,15 @@ class EmployeeServiceTest {
             return employee;
         });
         when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(persistedEmployee()));
-        when(salaryRepository.findByEmployee_IdAndEffectiveFrom(employeeId, LocalDate.of(2024, 1, 15)))
-                .thenReturn(Optional.empty());
-        when(salaryRepository.findFirstByEmployee_IdOrderByEffectiveFromDesc(employeeId))
-                .thenReturn(Optional.of(persistedSalary()));
+        when(salaryService.apply(any(Employee.class), any(SalaryRequest.class))).thenReturn(persistedSalary());
+        when(salaryService.findCurrent(employeeId)).thenReturn(Optional.of(persistedSalary()));
 
         var response = employeeService.create(createRequest());
 
         assertThat(response.employeeCode()).isEqualTo("E-1");
         assertThat(response.country()).isEqualTo("IN");
         assertThat(response.currentSalary().currency()).isEqualTo("INR");
-        verify(salaryRepository).save(any(Salary.class));
-        ArgumentCaptor<Salary> salaryCaptor = ArgumentCaptor.forClass(Salary.class);
-        verify(salaryRepository).save(salaryCaptor.capture());
-        assertThat(salaryCaptor.getValue().getAnnualSalary()).isEqualByComparingTo("120000.00");
+        verify(salaryService).apply(any(Employee.class), any(SalaryRequest.class));
     }
 
     @Test
@@ -137,6 +143,8 @@ class EmployeeServiceTest {
             employee.setId(employeeId);
             return employee;
         });
+        when(salaryService.apply(any(Employee.class), any(SalaryRequest.class)))
+                .thenThrow(new ValidationException("annualSalary must be greater than 0"));
 
         CreateEmployeeRequest request = new CreateEmployeeRequest(
                 "E-1",

@@ -41,26 +41,42 @@ Country is a code, not a table: ISO set is fixed and we store no extra country a
 | id | UUID PK | |
 | employee_id | UUID NOT NULL FK → employee | `ON DELETE RESTRICT` |
 | annual_salary | NUMERIC(15,2) NOT NULL | `> 0`; BigDecimal in Java |
-| currency | CHAR(3) NOT NULL | ISO 4217, uppercase |
-| effective_from | DATE NOT NULL | When this amount became current |
+| currency | CHAR(3) NOT NULL | ISO 4217, uppercase; allowlisted in the API |
+| effective_from | DATE NOT NULL | Start of this pay period |
 | created_at, updated_at | TIMESTAMP WITH TIME ZONE NOT NULL | |
 
-**Current pay** (until `effective_to` exists) = the row with the greatest `effective_from` that is `<=` today.
+No amount or currency on `employee`.
 
-No amount or currency on `employee`. A raise is a new `salary` row.
+## Salary history decisions
 
-## Uniqueness on salary — decision
+**Model:** one row per employee per `effective_from`. There is no `effective_to` column.
 
-**Do not** `UNIQUE (employee_id)`. That would allow only one salary row per person and block history.
+**Period:** implicit half-open interval  
+`[effective_from, next_effective_from)`  
+and the last row continues until a later row exists. Periods cannot overlap: uniqueness of `(employee_id, effective_from)` plus this rule is enough. We do not need a second overlap constraint.
 
-**Do** `UNIQUE (employee_id, effective_from)`:
+**Current salary:** the row with the greatest `effective_from` that is `<= today`. A future-dated PUT is stored in history but does not become current until that date.
 
-- One compensation event per employee per calendar date.
-- History is unlimited across dates.
-- “Current” is derived, not a second flag, so we cannot get two currents on the same day.
-- A same-day correction is a later product (or an update of that row), not a second insert.
+**PUT `/salary`:**
 
-We did **not** add `effective_to` in this migration. The unique key still leaves a clean path: later add `effective_to` and a partial unique index `UNIQUE (employee_id) WHERE effective_to IS NULL` if we want an explicit current row.
+| Incoming `effective_from` | Effect |
+| --- | --- |
+| New date | **Insert** a row. Older rows stay (history). |
+| Existing date | **Update** that row in place (same-day correction). Not a second insert. |
+
+Never overwrite a different date’s row. Never delete history on update.
+
+**Why not `UNIQUE (employee_id)` only:** that would allow one salary forever and block history.
+
+**Why not `effective_to` yet:** derived current + unique start date answers “pay as of date” and “current pay.” We can add `effective_to` later plus `UNIQUE (employee_id) WHERE effective_to IS NULL` if we want an explicit current flag.
+
+**API:**
+
+- `GET .../salary` — current (as of today), 404 if employee missing or no applicable row
+- `GET .../salary-history` — all rows, newest `effective_from` first
+- `PUT .../salary` — insert or correct as above; employee must exist
+
+**Money:** `NUMERIC` / `BigDecimal` only. Supported currencies: USD, EUR, GBP, INR, SGD, AUD, CAD, CHF, JPY, NZD.
 
 ## Indexes
 
@@ -88,5 +104,5 @@ We did **not** add `effective_to` in this migration. The unique key still leaves
 
 - FX / a single global payroll total
 - Pay frequency other than annual (amount is annual)
-- Soft-delete of employees
-- Application-level `updated_at` triggers (defaults only; services will set `updated_at` later)
+- Soft-delete of employees (status `TERMINATED` in the API)
+- Application-level `updated_at` triggers (entity callbacks set `updated_at`)

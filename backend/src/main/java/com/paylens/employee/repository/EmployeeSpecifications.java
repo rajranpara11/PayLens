@@ -48,12 +48,15 @@ public final class EmployeeSpecifications {
         return (root, query, cb) -> cb.equal(root.get("employmentStatus"), status);
     }
 
-    public static Specification<Employee> currentCurrencyEquals(String currency) {
+    public static Specification<Employee> currentCurrencyEquals(String currency, LocalDate onDate) {
         return (root, query, cb) -> {
             Subquery<LocalDate> latest = query.subquery(LocalDate.class);
             Root<Salary> latestRoot = latest.from(Salary.class);
             latest.select(cb.greatest(latestRoot.<LocalDate>get("effectiveFrom")));
-            latest.where(cb.equal(latestRoot.get("employee"), root));
+            latest.where(
+                    cb.equal(latestRoot.get("employee"), root),
+                    cb.lessThanOrEqualTo(latestRoot.get("effectiveFrom"), onDate)
+            );
 
             Subquery<Integer> exists = query.subquery(Integer.class);
             Root<Salary> salary = exists.from(Salary.class);

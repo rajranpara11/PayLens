@@ -7,7 +7,6 @@ import com.paylens.common.validation.CountryCodes;
 import com.paylens.employee.dto.CreateEmployeeRequest;
 import com.paylens.employee.dto.EmployeeResponse;
 import com.paylens.employee.dto.EmployeeSearchCriteria;
-import com.paylens.employee.dto.SalaryRequest;
 import com.paylens.employee.dto.UpdateEmployeeRequest;
 import com.paylens.employee.entity.Department;
 import com.paylens.employee.entity.Employee;
@@ -17,12 +16,13 @@ import com.paylens.employee.repository.EmployeeRepository;
 import com.paylens.employee.repository.EmployeeSpecifications;
 import com.paylens.salary.entity.Salary;
 import com.paylens.salary.repository.SalaryRepository;
-import java.math.BigDecimal;
+import com.paylens.salary.service.SalaryService;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -40,15 +40,21 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final SalaryRepository salaryRepository;
+    private final SalaryService salaryService;
+    private final Clock clock;
 
     public EmployeeService(
             EmployeeRepository employeeRepository,
             DepartmentRepository departmentRepository,
-            SalaryRepository salaryRepository
+            SalaryRepository salaryRepository,
+            SalaryService salaryService,
+            Clock clock
     ) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.salaryRepository = salaryRepository;
+        this.salaryService = salaryService;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -66,7 +72,7 @@ public class EmployeeService {
     public EmployeeResponse get(UUID id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Employee not found"));
-        Salary current = salaryRepository.findFirstByEmployee_IdOrderByEffectiveFromDesc(id).orElse(null);
+        Salary current = salaryService.findCurrent(id).orElse(null);
         return EmployeeMapper.toResponse(employee, current);
     }
 
@@ -90,7 +96,7 @@ public class EmployeeService {
                 request.joiningDate()
         );
         Employee saved = employeeRepository.save(employee);
-        saveSalary(saved, request.salary(), true);
+        salaryService.apply(saved, request.salary());
         return get(saved.getId());
     }
 
@@ -117,7 +123,7 @@ public class EmployeeService {
         );
         employeeRepository.save(employee);
         if (request.salary() != null) {
-            saveSalary(employee, request.salary(), false);
+            salaryService.apply(employee, request.salary());
         }
         return get(id);
     }
@@ -150,7 +156,10 @@ public class EmployeeService {
             spec = spec.and(EmployeeSpecifications.statusEquals(parseStatus(criteria.employmentStatus(), null)));
         }
         if (hasText(criteria.currency())) {
-            spec = spec.and(EmployeeSpecifications.currentCurrencyEquals(normalizeCurrency(criteria.currency())));
+            spec = spec.and(EmployeeSpecifications.currentCurrencyEquals(
+                    SalaryService.requireCurrency(criteria.currency()),
+                    LocalDate.now(clock)
+            ));
         }
         return spec;
     }
@@ -177,34 +186,6 @@ public class EmployeeService {
         employee.setDesignation(designation.trim());
         employee.setEmploymentStatus(status);
         employee.setJoiningDate(joiningDate);
-    }
-
-    private void saveSalary(Employee employee, SalaryRequest request, boolean requiredNew) {
-        BigDecimal amount = request.annualSalary();
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ValidationException("annualSalary must be greater than 0");
-        }
-        String currency = normalizeCurrency(request.currency());
-        Optional<Salary> existing = salaryRepository.findByEmployee_IdAndEffectiveFrom(
-                employee.getId(),
-                request.effectiveFrom()
-        );
-        if (existing.isPresent()) {
-            if (requiredNew) {
-                throw new ConflictException("A salary already exists for this effective date");
-            }
-            Salary salary = existing.get();
-            salary.setAnnualSalary(amount);
-            salary.setCurrency(currency);
-            salaryRepository.save(salary);
-            return;
-        }
-        Salary salary = new Salary();
-        salary.setEmployee(employee);
-        salary.setAnnualSalary(amount);
-        salary.setCurrency(currency);
-        salary.setEffectiveFrom(request.effectiveFrom());
-        salaryRepository.save(salary);
     }
 
     private Department resolveDepartment(String department) {
@@ -236,7 +217,9 @@ public class EmployeeService {
         if (employeeIds.isEmpty()) {
             return Map.of();
         }
+        LocalDate today = LocalDate.now(clock);
         return salaryRepository.findByEmployee_IdIn(employeeIds).stream()
+                .filter(salary -> !salary.getEffectiveFrom().isAfter(today))
                 .collect(Collectors.groupingBy(salary -> salary.getEmployee().getId()))
                 .entrySet()
                 .stream()
@@ -260,14 +243,6 @@ public class EmployeeService {
         } catch (IllegalArgumentException ex) {
             throw new ValidationException("Invalid employmentStatus");
         }
-    }
-
-    private static String normalizeCurrency(String currency) {
-        String normalized = currency.trim().toUpperCase(Locale.ROOT);
-        if (normalized.length() != 3 || !normalized.chars().allMatch(Character::isLetter)) {
-            throw new ValidationException("currency must be a 3-letter ISO 4217 code");
-        }
-        return normalized;
     }
 
     private static String normalizeCode(String employeeCode) {
