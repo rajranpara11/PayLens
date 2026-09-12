@@ -1,147 +1,415 @@
-import { Component } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  inject,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
+import {
+  BarController,
+  BarElement,
+  CategoryScale,
+  Chart,
+  ChartConfiguration,
+  Legend,
+  LinearScale,
+  Title,
+  Tooltip,
+} from 'chart.js';
+import { Subscription, forkJoin } from 'rxjs';
+import { ApiErrorResponse } from '../../models/api.model';
+import {
+  AnalyticsOverview,
+  CountryHeadcountRow,
+  CountryPayrollRow,
+  CurrencyCompensationStats,
+  DepartmentSalaryRow,
+  DesignationSalaryRow,
+  SalaryDistributionBucket,
+} from '../../models/analytics.model';
+import { AnalyticsService } from '../../services/analytics.service';
+import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { countryLabel } from '../../shared/constants/lookup.constants';
+import { MoneyPipe } from '../../shared/pipes/money.pipe';
+import { buildCompensationInsights } from './insights';
+
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
+
+const CHART_TEAL = '#0f766e';
+const CHART_TEAL_SOFT = 'rgba(15, 118, 110, 0.72)';
+const CHART_SLATE = '#3a4f63';
+const CHART_GRID = 'rgba(18, 38, 58, 0.08)';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [MatButtonModule, MatIconModule, RouterLink, PageHeaderComponent],
-  template: `
-    <app-page-header
-      eyebrow="Overview"
-      title="Dashboard"
-      subtitle="Currency-safe compensation analytics for ACME. Charts wire in next."
-    >
-      <a mat-flat-button color="primary" routerLink="/employees">
-        <mat-icon>groups</mat-icon>
-        Open employees
-      </a>
-    </app-page-header>
-
-    <section class="hero pl-panel">
-      <div>
-        <p class="kicker">PayLens workspace</p>
-        <h2>See payroll clearly. Act with confidence.</h2>
-        <p class="lede">
-          Manage headcount, review current compensation, and keep salary history
-          auditable — without mixing currencies in totals.
-        </p>
-      </div>
-      <div class="hero-visual" aria-hidden="true">
-        <div class="bar b1"></div>
-        <div class="bar b2"></div>
-        <div class="bar b3"></div>
-        <div class="bar b4"></div>
-      </div>
-    </section>
-
-    <section class="cards">
-      <article class="card pl-panel">
-        <mat-icon>insights</mat-icon>
-        <h3>Analytics ready</h3>
-        <p>Endpoints under <code>/api/v1/analytics/*</code> are prepared for widgets.</p>
-      </article>
-      <article class="card pl-panel">
-        <mat-icon>public</mat-icon>
-        <h3>Currency-safe</h3>
-        <p>Rollups stay grouped by currency so INR never blends into USD.</p>
-      </article>
-      <article class="card pl-panel">
-        <mat-icon>history</mat-icon>
-        <h3>Salary history</h3>
-        <p>Effective-dated changes stay traceable from the employee profile.</p>
-      </article>
-    </section>
-  `,
-  styles: `
-    .hero {
-      display: grid;
-      grid-template-columns: 1.4fr 0.8fr;
-      gap: 1.5rem;
-      align-items: center;
-      padding: 1.6rem 1.75rem;
-      margin-bottom: 1rem;
-      background:
-        linear-gradient(135deg, rgba(15, 118, 110, 0.08), transparent 42%),
-        var(--pl-surface);
-    }
-    .kicker {
-      margin: 0 0 0.45rem;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--pl-accent);
-    }
-    h2 {
-      margin: 0;
-      font-family: var(--pl-display);
-      font-size: clamp(1.35rem, 2vw, 1.75rem);
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      color: var(--pl-ink);
-      line-height: 1.2;
-    }
-    .lede {
-      margin: 0.7rem 0 0;
-      max-width: 34rem;
-      color: var(--pl-muted);
-      line-height: 1.55;
-    }
-    .hero-visual {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 0.55rem;
-      min-height: 7rem;
-      padding: 0.5rem;
-    }
-    .bar {
-      width: 1.35rem;
-      border-radius: 8px 8px 4px 4px;
-      background: linear-gradient(180deg, #14b8a6, #0f766e);
-      opacity: 0.85;
-    }
-    .b1 { height: 42%; }
-    .b2 { height: 68%; opacity: 0.7; }
-    .b3 { height: 88%; }
-    .b4 { height: 56%; opacity: 0.75; }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1rem;
-    }
-    .card {
-      padding: 1.25rem 1.3rem;
-    }
-    .card mat-icon {
-      color: var(--pl-accent);
-      margin-bottom: 0.55rem;
-    }
-    .card h3 {
-      margin: 0 0 0.4rem;
-      font-size: 1rem;
-      font-weight: 700;
-    }
-    .card p {
-      margin: 0;
-      color: var(--pl-muted);
-      line-height: 1.5;
-      font-size: 0.9rem;
-    }
-    @media (max-width: 900px) {
-      .hero {
-        grid-template-columns: 1fr;
-      }
-      .hero-visual {
-        display: none;
-      }
-      .cards {
-        grid-template-columns: 1fr;
-      }
-    }
-  `,
+  imports: [
+    DecimalPipe,
+    FormsModule,
+    RouterLink,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    PageHeaderComponent,
+    ErrorStateComponent,
+    MoneyPipe,
+  ],
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss',
 })
-export class DashboardComponent {}
+export class DashboardComponent implements OnInit, OnDestroy {
+  private readonly analyticsService = inject(AnalyticsService);
+
+  @ViewChild('headcountCanvas') headcountCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('payrollCanvas') payrollCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('departmentCanvas') departmentCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('designationCanvas') designationCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('distributionCanvas') distributionCanvas?: ElementRef<HTMLCanvasElement>;
+
+  loading = false;
+  errorMessage: string | null = null;
+
+  overview: AnalyticsOverview | null = null;
+  headcountByCountry: CountryHeadcountRow[] = [];
+  payrollByCountry: CountryPayrollRow[] = [];
+  salaryByDepartment: DepartmentSalaryRow[] = [];
+  salaryByDesignation: DesignationSalaryRow[] = [];
+  salaryDistribution: SalaryDistributionBucket[] = [];
+
+  selectedCurrency = '';
+  insights: string[] = [];
+
+  private loadSub?: Subscription;
+  private renderTimer: ReturnType<typeof setTimeout> | null = null;
+  private headcountChart?: Chart;
+  private payrollChart?: Chart;
+  private departmentChart?: Chart;
+  private designationChart?: Chart;
+  private distributionChart?: Chart;
+
+  ngOnInit(): void {
+    this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.loadSub?.unsubscribe();
+    this.clearRenderTimer();
+    this.destroyCharts();
+  }
+
+  load(): void {
+    this.loadSub?.unsubscribe();
+    this.clearRenderTimer();
+    this.loading = true;
+    this.errorMessage = null;
+    this.destroyCharts();
+
+    const opts = { skipErrorSnack: true };
+    this.loadSub = forkJoin({
+      overview: this.analyticsService.getOverview(opts),
+      headcountByCountry: this.analyticsService.getEmployeeCountByCountry(opts),
+      payrollByCountry: this.analyticsService.getPayrollByCountry(opts),
+      salaryByDepartment: this.analyticsService.getSalaryByDepartment(opts),
+      salaryByDesignation: this.analyticsService.getSalaryByDesignation(opts),
+      salaryDistribution: this.analyticsService.getSalaryDistribution(opts),
+    }).subscribe({
+      next: (data) => {
+        this.overview = data.overview;
+        this.headcountByCountry = [...data.headcountByCountry].sort(
+          (a, b) => b.employeeCount - a.employeeCount
+        );
+        this.payrollByCountry = data.payrollByCountry;
+        this.salaryByDepartment = data.salaryByDepartment;
+        this.salaryByDesignation = data.salaryByDesignation;
+        this.salaryDistribution = data.salaryDistribution;
+        this.selectedCurrency = this.defaultCurrency(data.overview);
+        this.insights = buildCompensationInsights(data);
+        this.loading = false;
+        this.queueChartRender();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loading = false;
+        this.overview = null;
+        this.insights = [];
+        const apiError = error.error as ApiErrorResponse | undefined;
+        this.errorMessage = apiError?.message || 'Unable to load compensation analytics.';
+      },
+    });
+  }
+
+  onCurrencyChange(): void {
+    this.destroyCharts();
+    this.queueChartRender();
+  }
+
+  get selectedStats(): CurrencyCompensationStats | null {
+    if (!this.overview || !this.selectedCurrency) {
+      return null;
+    }
+    return (
+      this.overview.compensationByCurrency.find((row) => row.currency === this.selectedCurrency) ??
+      null
+    );
+  }
+
+  get currencies(): string[] {
+    return (this.overview?.compensationByCurrency ?? [])
+      .slice()
+      .sort((a, b) => b.employeeCount - a.employeeCount)
+      .map((row) => row.currency);
+  }
+
+  get payrollByCurrency(): CurrencyCompensationStats[] {
+    return [...(this.overview?.compensationByCurrency ?? [])].sort(
+      (a, b) => b.employeeCount - a.employeeCount
+    );
+  }
+
+  hasRows(kind: 'payroll' | 'department' | 'designation' | 'distribution' | 'headcount'): boolean {
+    switch (kind) {
+      case 'headcount':
+        return this.headcountByCountry.length > 0;
+      case 'payroll':
+        return this.payrollByCountry.some((row) => row.currency === this.selectedCurrency);
+      case 'department':
+        return this.salaryByDepartment.some((row) => row.currency === this.selectedCurrency);
+      case 'designation':
+        return this.salaryByDesignation.some((row) => row.currency === this.selectedCurrency);
+      case 'distribution':
+        return this.salaryDistribution.some((row) => row.currency === this.selectedCurrency);
+    }
+  }
+
+  private defaultCurrency(overview: AnalyticsOverview): string {
+    const sorted = [...overview.compensationByCurrency].sort(
+      (a, b) => b.employeeCount - a.employeeCount
+    );
+    return sorted[0]?.currency ?? '';
+  }
+
+  private queueChartRender(): void {
+    this.clearRenderTimer();
+    this.renderTimer = setTimeout(() => this.renderCharts(), 0);
+  }
+
+  private clearRenderTimer(): void {
+    if (this.renderTimer !== null) {
+      clearTimeout(this.renderTimer);
+      this.renderTimer = null;
+    }
+  }
+
+  private renderCharts(): void {
+    this.renderHeadcountChart();
+    this.renderPayrollChart();
+    this.renderDepartmentChart();
+    this.renderDesignationChart();
+    this.renderDistributionChart();
+  }
+
+  private renderHeadcountChart(): void {
+    const canvas = this.headcountCanvas?.nativeElement;
+    if (!canvas || !this.hasRows('headcount')) {
+      return;
+    }
+    this.headcountChart?.destroy();
+    const labels = this.headcountByCountry.map((row) => countryLabel(row.country));
+    const values = this.headcountByCountry.map((row) => row.employeeCount);
+    this.headcountChart = new Chart(canvas, this.horizontalBarConfig(labels, values, 'Employees'));
+  }
+
+  private renderPayrollChart(): void {
+    const canvas = this.payrollCanvas?.nativeElement;
+    if (!canvas || !this.hasRows('payroll')) {
+      return;
+    }
+    this.payrollChart?.destroy();
+    const rows = this.payrollByCountry
+      .filter((row) => row.currency === this.selectedCurrency)
+      .sort((a, b) => b.totalPayroll - a.totalPayroll);
+    const labels = rows.map((row) => countryLabel(row.country));
+    const values = rows.map((row) => row.totalPayroll);
+    this.payrollChart = new Chart(
+      canvas,
+      this.horizontalBarConfig(labels, values, `Payroll (${this.selectedCurrency})`, true)
+    );
+  }
+
+  private renderDepartmentChart(): void {
+    const canvas = this.departmentCanvas?.nativeElement;
+    if (!canvas || !this.hasRows('department')) {
+      return;
+    }
+    this.departmentChart?.destroy();
+    const rows = this.salaryByDepartment
+      .filter((row) => row.currency === this.selectedCurrency)
+      .sort((a, b) => b.averageSalary - a.averageSalary);
+    const labels = rows.map((row) => row.departmentName);
+    const values = rows.map((row) => row.averageSalary);
+    this.departmentChart = new Chart(
+      canvas,
+      this.horizontalBarConfig(labels, values, `Avg salary (${this.selectedCurrency})`, true)
+    );
+  }
+
+  private renderDesignationChart(): void {
+    const canvas = this.designationCanvas?.nativeElement;
+    if (!canvas || !this.hasRows('designation')) {
+      return;
+    }
+    this.designationChart?.destroy();
+    const rows = this.salaryByDesignation
+      .filter((row) => row.currency === this.selectedCurrency)
+      .sort((a, b) => b.averageSalary - a.averageSalary)
+      .slice(0, 8);
+    const labels = rows.map((row) => row.designation);
+    const values = rows.map((row) => row.averageSalary);
+    this.designationChart = new Chart(
+      canvas,
+      this.horizontalBarConfig(labels, values, `Avg salary (${this.selectedCurrency})`, true)
+    );
+  }
+
+  private renderDistributionChart(): void {
+    const canvas = this.distributionCanvas?.nativeElement;
+    if (!canvas || !this.hasRows('distribution')) {
+      return;
+    }
+    this.distributionChart?.destroy();
+    const rows = this.salaryDistribution
+      .filter((row) => row.currency === this.selectedCurrency)
+      .sort((a, b) => a.bucket - b.bucket);
+    const labels = rows.map(
+      (row) => `${this.shortMoney(row.bandMin)}–${this.shortMoney(row.bandMax)}`
+    );
+    const values = rows.map((row) => row.employeeCount);
+    this.distributionChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: `Employees (${this.selectedCurrency})`,
+            data: values,
+            backgroundColor: CHART_TEAL_SOFT,
+            borderColor: CHART_TEAL,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: this.baseOptions(false),
+    });
+  }
+
+  private horizontalBarConfig(
+    labels: string[],
+    values: number[],
+    datasetLabel: string,
+    money = false
+  ): ChartConfiguration<'bar'> {
+    return {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: datasetLabel,
+            data: values,
+            backgroundColor: CHART_TEAL_SOFT,
+            borderColor: CHART_TEAL,
+            borderWidth: 1,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: {
+        ...this.baseOptions(money),
+        indexAxis: 'y',
+      },
+    };
+  }
+
+  private baseOptions(money: boolean): ChartConfiguration<'bar'>['options'] {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: {
+            boxWidth: 12,
+            color: CHART_SLATE,
+            font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 },
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const value = Number(context.parsed.x ?? context.parsed.y ?? 0);
+              const formatted = money
+                ? new Intl.NumberFormat(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(value)
+                : new Intl.NumberFormat(undefined).format(value);
+              const suffix =
+                money && this.selectedCurrency ? ` ${this.selectedCurrency}` : '';
+              return `${context.dataset.label}: ${formatted}${suffix}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: CHART_GRID },
+          ticks: {
+            color: CHART_SLATE,
+            callback: (value) => {
+              const numeric = Number(value);
+              return money ? this.shortMoney(numeric) : numeric;
+            },
+          },
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: CHART_SLATE },
+        },
+      },
+    };
+  }
+
+  private shortMoney(value: number): string {
+    return new Intl.NumberFormat(undefined, {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
+
+  private destroyCharts(): void {
+    this.headcountChart?.destroy();
+    this.payrollChart?.destroy();
+    this.departmentChart?.destroy();
+    this.designationChart?.destroy();
+    this.distributionChart?.destroy();
+    this.headcountChart = undefined;
+    this.payrollChart = undefined;
+    this.departmentChart = undefined;
+    this.designationChart = undefined;
+    this.distributionChart = undefined;
+  }
+}

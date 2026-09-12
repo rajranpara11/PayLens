@@ -1,0 +1,195 @@
+<app-page-header
+  eyebrow="Overview"
+  title="Compensation dashboard"
+  subtitle="Currency-safe view of how ACME pays people — understand the structure in under a minute."
+>
+  <a mat-stroked-button routerLink="/employees">
+    <mat-icon>groups</mat-icon>
+    Employees
+  </a>
+  <button mat-flat-button color="primary" type="button" (click)="load()" [disabled]="loading">
+    <mat-icon>refresh</mat-icon>
+    Refresh
+  </button>
+</app-page-header>
+
+@if (loading) {
+  <div class="loading" aria-live="polite">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading compensation analytics…</p>
+  </div>
+} @else if (errorMessage) {
+  <app-error-state
+    title="Unable to load dashboard"
+    [message]="errorMessage"
+    actionLabel="Retry"
+    (action)="load()"
+  ></app-error-state>
+} @else if (overview) {
+  <section class="currency-bar pl-panel">
+    <div class="currency-copy">
+      <h2>Compensation lens</h2>
+      <p>
+        Salary cards and money charts use one currency at a time.
+        {{ overview.currencyNote || 'Totals are never mixed across currencies.' }}
+      </p>
+    </div>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="currency-select">
+      <mat-label>Currency</mat-label>
+      <mat-select [(ngModel)]="selectedCurrency" (selectionChange)="onCurrencyChange()">
+        @for (currency of currencies; track currency) {
+          <mat-option [value]="currency">{{ currency }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </section>
+
+  <section class="summary-grid" aria-label="Summary metrics">
+    <article class="stat-card pl-panel">
+      <p class="stat-label">Total employees</p>
+      <p class="stat-value">{{ overview.totalEmployees | number }}</p>
+      <p class="stat-hint">{{ overview.employedEmployees | number }} employed (active + on leave)</p>
+    </article>
+
+    <article class="stat-card pl-panel">
+      <p class="stat-label">Average salary</p>
+      @if (selectedStats; as stats) {
+        <p class="stat-value pl-numeric">{{ stats.averageSalary | money: stats.currency }}</p>
+        <p class="stat-hint">{{ stats.employeeCount | number }} people in {{ stats.currency }}</p>
+      } @else {
+        <p class="stat-empty">No salary data</p>
+      }
+    </article>
+
+    <article class="stat-card pl-panel">
+      <p class="stat-label">Median salary</p>
+      @if (selectedStats; as stats) {
+        <p class="stat-value pl-numeric">{{ stats.medianSalary | money: stats.currency }}</p>
+        <p class="stat-hint">{{ stats.currency }} cohort</p>
+      } @else {
+        <p class="stat-empty">No salary data</p>
+      }
+    </article>
+
+    <article class="stat-card pl-panel">
+      <p class="stat-label">Minimum salary</p>
+      @if (selectedStats; as stats) {
+        <p class="stat-value pl-numeric">{{ stats.minSalary | money: stats.currency }}</p>
+        <p class="stat-hint">Floor in {{ stats.currency }}</p>
+      } @else {
+        <p class="stat-empty">No salary data</p>
+      }
+    </article>
+
+    <article class="stat-card pl-panel">
+      <p class="stat-label">Maximum salary</p>
+      @if (selectedStats; as stats) {
+        <p class="stat-value pl-numeric">{{ stats.maxSalary | money: stats.currency }}</p>
+        <p class="stat-hint">Ceiling in {{ stats.currency }}</p>
+      } @else {
+        <p class="stat-empty">No salary data</p>
+      }
+    </article>
+  </section>
+
+  @if (overview.compensationByCurrency.length > 0) {
+    <section class="payroll-strip pl-panel" aria-label="Payroll by currency">
+      <h2>Payroll by currency</h2>
+      <div class="payroll-chips">
+        @for (row of payrollByCurrency; track row.currency) {
+          <div class="payroll-chip">
+            <span class="chip-currency">{{ row.currency }}</span>
+            <span class="chip-value pl-numeric">{{ row.totalPayroll | money: row.currency }}</span>
+            <span class="chip-meta">{{ row.employeeCount | number }} employed</span>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (insights.length > 0) {
+    <section class="insights pl-panel">
+      <div class="insights-head">
+        <mat-icon>lightbulb</mat-icon>
+        <h2>Compensation insights</h2>
+      </div>
+      <ul>
+        @for (insight of insights; track insight) {
+          <li>{{ insight }}</li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section class="charts-grid">
+    <article class="chart-card pl-panel">
+      <header>
+        <h2>Employee count by country</h2>
+        <p>Headcount only — safe across borders.</p>
+      </header>
+      @if (hasRows('headcount')) {
+        <div class="chart-frame">
+          <canvas #headcountCanvas aria-label="Employee count by country chart"></canvas>
+        </div>
+      } @else {
+        <div class="empty-chart">No country headcount data yet.</div>
+      }
+    </article>
+
+    <article class="chart-card pl-panel">
+      <header>
+        <h2>Payroll by country</h2>
+        <p>Total payroll in {{ selectedCurrency || 'selected currency' }}.</p>
+      </header>
+      @if (hasRows('payroll')) {
+        <div class="chart-frame">
+          <canvas #payrollCanvas aria-label="Payroll by country chart"></canvas>
+        </div>
+      } @else {
+        <div class="empty-chart">No payroll rows for {{ selectedCurrency || 'this currency' }}.</div>
+      }
+    </article>
+
+    <article class="chart-card pl-panel">
+      <header>
+        <h2>Average salary by department</h2>
+        <p>Department averages in {{ selectedCurrency || 'selected currency' }}.</p>
+      </header>
+      @if (hasRows('department')) {
+        <div class="chart-frame tall">
+          <canvas #departmentCanvas aria-label="Average salary by department chart"></canvas>
+        </div>
+      } @else {
+        <div class="empty-chart">No department salary data for {{ selectedCurrency || 'this currency' }}.</div>
+      }
+    </article>
+
+    <article class="chart-card pl-panel">
+      <header>
+        <h2>Average salary by designation</h2>
+        <p>Top designations in {{ selectedCurrency || 'selected currency' }}.</p>
+      </header>
+      @if (hasRows('designation')) {
+        <div class="chart-frame tall">
+          <canvas #designationCanvas aria-label="Average salary by designation chart"></canvas>
+        </div>
+      } @else {
+        <div class="empty-chart">No designation salary data for {{ selectedCurrency || 'this currency' }}.</div>
+      }
+    </article>
+
+    <article class="chart-card pl-panel chart-wide">
+      <header>
+        <h2>Salary distribution</h2>
+        <p>Employee count across salary bands in {{ selectedCurrency || 'selected currency' }}.</p>
+      </header>
+      @if (hasRows('distribution')) {
+        <div class="chart-frame">
+          <canvas #distributionCanvas aria-label="Salary distribution chart"></canvas>
+        </div>
+      } @else {
+        <div class="empty-chart">No distribution bands for {{ selectedCurrency || 'this currency' }}.</div>
+      }
+    </article>
+  </section>
+}
