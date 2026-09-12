@@ -1,0 +1,20 @@
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+  background: #f6f8fb;
+  color: #1f1f1f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.paylens-error-snack {
+  --mdc-snackbar-container-color: #8c1d18;
+  --mdc-snackbar-supporting-text-color: #fff;
+}
