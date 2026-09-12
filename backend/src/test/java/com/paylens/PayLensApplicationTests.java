@@ -39,7 +39,7 @@ class PayLensApplicationTests {
                 "SELECT version FROM flyway_schema_history WHERE success",
                 String.class
         );
-        assertThat(versions).contains("1", "2");
+        assertThat(versions).contains("1", "2", "3");
 
         List<String> tables = jdbcTemplate.queryForList(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
