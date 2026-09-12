@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:8081/api/v1',
+  // Same-origin via ng serve proxy (proxy.conf.json → localhost:8081). Avoids browser CORS in local dev.
+  apiBaseUrl: '/api/v1',
 };

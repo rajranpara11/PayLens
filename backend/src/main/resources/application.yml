@@ -37,8 +37,9 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
 
-# Seeding is OFF unless profile "seed" is active (or paylens.seed.enabled=true is set explicitly).
 paylens:
+  cors:
+    allowed-origins: http://localhost:4200
   seed:
     enabled: false
     employee-count: 10000
