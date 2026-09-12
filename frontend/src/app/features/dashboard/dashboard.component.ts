@@ -27,7 +27,6 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Subscription, forkJoin } from 'rxjs';
-import { ApiErrorResponse } from '../../models/api.model';
 import {
   AnalyticsOverview,
   CountryHeadcountRow,
@@ -37,11 +36,13 @@ import {
   DesignationSalaryRow,
   SalaryDistributionBucket,
 } from '../../models/analytics.model';
+import { NotificationService } from '../../core/services/notification.service';
 import { AnalyticsService } from '../../services/analytics.service';
 import { ErrorStateComponent } from '../../shared/components/error-state/error-state.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { countryLabel } from '../../shared/constants/lookup.constants';
 import { MoneyPipe } from '../../shared/pipes/money.pipe';
+import { formatApiErrorMessage } from '../../shared/utils/api-error.util';
 import { buildCompensationInsights } from './insights';
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
@@ -72,6 +73,7 @@ const CHART_GRID = 'rgba(18, 38, 58, 0.08)';
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   private readonly analyticsService = inject(AnalyticsService);
+  private readonly notifications = inject(NotificationService);
 
   @ViewChild('headcountCanvas') headcountCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('payrollCanvas') payrollCanvas?: ElementRef<HTMLCanvasElement>;
@@ -113,9 +115,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   load(): void {
     this.loadSub?.unsubscribe();
     this.clearRenderTimer();
-    this.loading = true;
+    const hadData = !!this.overview;
+    this.loading = !hadData;
     this.errorMessage = null;
-    this.destroyCharts();
+    if (!hadData) {
+      this.destroyCharts();
+    }
 
     const opts = { skipErrorSnack: true };
     this.loadSub = forkJoin({
@@ -135,17 +140,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.salaryByDepartment = data.salaryByDepartment;
         this.salaryByDesignation = data.salaryByDesignation;
         this.salaryDistribution = data.salaryDistribution;
-        this.selectedCurrency = this.defaultCurrency(data.overview);
+        this.selectedCurrency = this.selectedCurrency || this.defaultCurrency(data.overview);
+        if (!this.currencies.includes(this.selectedCurrency)) {
+          this.selectedCurrency = this.defaultCurrency(data.overview);
+        }
         this.insights = buildCompensationInsights(data);
         this.loading = false;
+        this.destroyCharts();
         this.queueChartRender();
       },
       error: (error: HttpErrorResponse) => {
         this.loading = false;
+        const message = formatApiErrorMessage(
+          error.error,
+          'Unable to load compensation analytics.'
+        );
+        if (hadData) {
+          this.notifications.error(message);
+          return;
+        }
         this.overview = null;
         this.insights = [];
-        const apiError = error.error as ApiErrorResponse | undefined;
-        this.errorMessage = apiError?.message || 'Unable to load compensation analytics.';
+        this.errorMessage = message;
       },
     });
   }

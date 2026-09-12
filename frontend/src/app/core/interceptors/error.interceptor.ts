@@ -1,9 +1,9 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
-import { ApiErrorResponse } from '../../models/api.model';
 import { SKIP_GLOBAL_ERROR_SNACK } from '../http/http-context.tokens';
 import { NotificationService } from '../services/notification.service';
+import { formatApiErrorMessage } from '../../shared/utils/api-error.util';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const notifications = inject(NotificationService);
@@ -11,11 +11,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (!req.context.get(SKIP_GLOBAL_ERROR_SNACK)) {
-        const apiError = error.error as ApiErrorResponse | undefined;
         const message =
-          apiError?.message ||
-          (typeof error.error === 'string' ? error.error : null) ||
-          error.message ||
+          formatApiErrorMessage(error.error, error.message || 'Request failed') ||
           'Request failed';
         notifications.error(message);
       }

@@ -7,6 +7,8 @@
       <input matInput formControlName="employeeCode" />
       @if (form.controls.employeeCode.hasError('required')) {
         <mat-error>Required</mat-error>
+      } @else if (form.controls.employeeCode.hasError('maxlength')) {
+        <mat-error>Max 32 characters</mat-error>
       }
     </mat-form-field>
 
@@ -15,6 +17,8 @@
       <input matInput formControlName="firstName" />
       @if (form.controls.firstName.hasError('required')) {
         <mat-error>Required</mat-error>
+      } @else if (form.controls.firstName.hasError('maxlength')) {
+        <mat-error>Max 100 characters</mat-error>
       }
     </mat-form-field>
 
@@ -23,6 +27,8 @@
       <input matInput formControlName="lastName" />
       @if (form.controls.lastName.hasError('required')) {
         <mat-error>Required</mat-error>
+      } @else if (form.controls.lastName.hasError('maxlength')) {
+        <mat-error>Max 100 characters</mat-error>
       }
     </mat-form-field>
 
@@ -31,6 +37,8 @@
       <input matInput type="email" formControlName="email" />
       @if (form.controls.email.hasError('email') || form.controls.email.hasError('required')) {
         <mat-error>Valid email required</mat-error>
+      } @else if (form.controls.email.hasError('maxlength')) {
+        <mat-error>Max 255 characters</mat-error>
       }
     </mat-form-field>
 
@@ -50,6 +58,9 @@
           <mat-option [value]="department.name">{{ department.name }}</mat-option>
         }
       </mat-select>
+      @if (data.departments.length === 0) {
+        <mat-hint>Department list unavailable</mat-hint>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline">
@@ -57,6 +68,8 @@
       <input matInput formControlName="designation" />
       @if (form.controls.designation.hasError('required')) {
         <mat-error>Required</mat-error>
+      } @else if (form.controls.designation.hasError('maxlength')) {
+        <mat-error>Max 120 characters</mat-error>
       }
     </mat-form-field>
 
@@ -82,7 +95,13 @@
     <button mat-button type="button" [mat-dialog-close]="undefined" [disabled]="saving">
       Cancel
     </button>
-    <button mat-flat-button color="primary" type="submit" [disabled]="saving">
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      [disabled]="saving"
+      [attr.aria-label]="saving ? 'Saving employee' : 'Save employee'"
+    >
       @if (saving) {
         <mat-spinner diameter="18"></mat-spinner>
       } @else {

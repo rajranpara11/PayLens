@@ -8,7 +8,7 @@
     Back
   </a>
   @if (employee) {
-    <button mat-stroked-button type="button" (click)="editEmployee()">
+    <button mat-stroked-button type="button" (click)="editEmployee()" [disabled]="openingEdit">
       <mat-icon>edit</mat-icon>
       Edit
     </button>
@@ -31,6 +31,7 @@
 @if (loading) {
   <div class="loading" aria-live="polite">
     <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading employee profile…</p>
   </div>
 } @else if (errorMessage) {
   <app-error-state
@@ -136,7 +137,10 @@
       <mat-icon>history</mat-icon>
       <h2>Salary history</h2>
     </div>
-    @if (history.length === 0) {
+    @if (historyError) {
+      <p class="history-error" role="alert">{{ historyError }}</p>
+      <button mat-stroked-button type="button" (click)="load()">Retry history</button>
+    } @else if (history.length === 0) {
       <p class="muted">No salary history available.</p>
     } @else {
       <div class="table-wrap">

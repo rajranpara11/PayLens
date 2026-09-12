@@ -221,6 +221,7 @@ public class AnalyticsRepository {
                 """
                 SELECT country, COUNT(*) AS employee_count
                 FROM employee
+                WHERE employment_status IN ('ACTIVE', 'ON_LEAVE')
                 GROUP BY country
                 ORDER BY country
                 """,

@@ -133,14 +133,16 @@ class AnalyticsRepositoryIntegrationTest {
     }
 
     @Test
-    void headcountIncludesAllStatuses() {
+    void headcountByCountryMatchesEmployedPeopleOnly() {
         assertThat(analyticsRepository.countAllEmployees()).isEqualTo(6);
         assertThat(analyticsRepository.countEmployedEmployees()).isEqualTo(5);
         assertThat(analyticsRepository.employeeCountByCountry())
                 .anySatisfy(row -> {
                     assertThat(row.country()).isEqualTo("US");
-                    assertThat(row.employeeCount()).isEqualTo(3);
+                    assertThat(row.employeeCount()).isEqualTo(2);
                 });
+        assertThat(analyticsRepository.employeeCountByCountry())
+                .noneMatch(row -> "US".equals(row.country()) && row.employeeCount() == 3);
     }
 
     private Department saveDept(String code, String name) {

@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription, forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, finalize, map } from 'rxjs/operators';
 import { ApiErrorResponse } from '../../../models/api.model';
 import { Department, Employee } from '../../../models/employee.model';
 import { Salary } from '../../../models/salary.model';
@@ -24,6 +24,7 @@ import {
   statusLabel,
 } from '../../../shared/constants/lookup.constants';
 import { MoneyPipe } from '../../../shared/pipes/money.pipe';
+import { formatApiErrorMessage } from '../../../shared/utils/api-error.util';
 import {
   EditEmployeeDialogComponent,
   EditEmployeeDialogData,
@@ -67,13 +68,16 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
 
   loading = false;
   deactivating = false;
+  openingEdit = false;
   errorMessage: string | null = null;
+  historyError: string | null = null;
 
   private loadSub?: Subscription;
+  private departmentsSub?: Subscription;
 
   ngOnInit(): void {
     this.employeeId = this.route.snapshot.paramMap.get('id') ?? '';
-    this.departmentService.list().subscribe({
+    this.departmentsSub = this.departmentService.list().subscribe({
       next: (departments) => {
         this.departments = departments;
       },
@@ -83,6 +87,7 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.loadSub?.unsubscribe();
+    this.departmentsSub?.unsubscribe();
   }
 
   load(): void {
@@ -94,47 +99,80 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
     this.loadSub?.unsubscribe();
     this.loading = true;
     this.errorMessage = null;
+    this.historyError = null;
 
     this.loadSub = forkJoin({
       employee: this.employeeService.getById(this.employeeId, { skipErrorSnack: true }),
-      history: this.employeeService
-        .getSalaryHistory(this.employeeId, { skipErrorSnack: true })
-        .pipe(catchError(() => of([] as Salary[]))),
+      history: this.employeeService.getSalaryHistory(this.employeeId, { skipErrorSnack: true }).pipe(
+        map((history) => ({ history, error: null as string | null })),
+        catchError((error: HttpErrorResponse) =>
+          of({
+            history: [] as Salary[],
+            error: formatApiErrorMessage(error.error, 'Unable to load salary history.'),
+          })
+        )
+      ),
     }).subscribe({
       next: ({ employee, history }) => {
         this.employee = employee;
-        this.history = history;
+        this.history = history.history;
+        this.historyError = history.error;
         this.loading = false;
       },
       error: (error: HttpErrorResponse) => {
         this.loading = false;
         this.employee = null;
         this.history = [];
-        const apiError = error.error as ApiErrorResponse | undefined;
-        this.errorMessage = apiError?.message || 'Unable to load employee.';
+        this.historyError = null;
+        this.errorMessage = formatApiErrorMessage(error.error, 'Unable to load employee.');
       },
     });
   }
 
   editEmployee(): void {
-    if (!this.employee) {
+    if (!this.employee || this.openingEdit) {
       return;
     }
-    const data: EditEmployeeDialogData = {
-      employee: this.employee,
-      departments: this.departments,
+
+    const open = (departments: Department[]) => {
+      if (!this.employee) {
+        return;
+      }
+      if (departments.length === 0) {
+        return;
+      }
+      const data: EditEmployeeDialogData = {
+        employee: this.employee,
+        departments,
+      };
+      this.dialog
+        .open(EditEmployeeDialogComponent, {
+          width: '40rem',
+          data,
+          disableClose: true,
+        })
+        .afterClosed()
+        .subscribe((updated?: Employee) => {
+          if (updated) {
+            this.employee = updated;
+          }
+        });
     };
-    this.dialog
-      .open(EditEmployeeDialogComponent, {
-        width: '40rem',
-        data,
-        disableClose: true,
-      })
-      .afterClosed()
-      .subscribe((updated?: Employee) => {
-        if (updated) {
-          this.employee = updated;
-        }
+
+    if (this.departments.length > 0) {
+      open(this.departments);
+      return;
+    }
+
+    this.openingEdit = true;
+    this.departmentService
+      .list()
+      .pipe(finalize(() => (this.openingEdit = false)))
+      .subscribe({
+        next: (departments) => {
+          this.departments = departments;
+          open(departments);
+        },
       });
   }
 

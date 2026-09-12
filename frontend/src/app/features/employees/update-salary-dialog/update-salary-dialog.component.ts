@@ -18,6 +18,7 @@ import { Employee } from '../../../models/employee.model';
 import { Salary } from '../../../models/salary.model';
 import { EmployeeService } from '../../../services/employee.service';
 import { CURRENCY_OPTIONS } from '../../../shared/constants/lookup.constants';
+import { localDateIso } from '../../../shared/utils/api-error.util';
 
 export interface UpdateSalaryDialogData {
   employee: Employee;
@@ -58,7 +59,7 @@ export class UpdateSalaryDialogComponent implements OnInit {
 
   ngOnInit(): void {
     const current = this.data.employee.currentSalary;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateIso();
     this.form.patchValue({
       annualSalary: current?.annualSalary ?? 0,
       currency: current?.currency ?? 'USD',

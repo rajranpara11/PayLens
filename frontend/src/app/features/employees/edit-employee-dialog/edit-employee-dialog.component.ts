@@ -89,7 +89,15 @@ export class EditEmployeeDialogComponent implements OnInit {
     this.saving = true;
     const value = this.form.getRawValue();
     const payload: UpdateEmployeeRequest = {
-      ...value,
+      employeeCode: value.employeeCode.trim(),
+      firstName: value.firstName.trim(),
+      lastName: value.lastName.trim(),
+      email: value.email.trim(),
+      country: value.country,
+      department: value.department,
+      designation: value.designation.trim(),
+      employmentStatus: value.employmentStatus,
+      joiningDate: value.joiningDate,
       salary: null,
     };
     this.employeeService.update(this.data.employee.id, payload).subscribe({

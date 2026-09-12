@@ -143,7 +143,7 @@ public class EmployeeService {
         }
         if (hasText(criteria.country())) {
             String country = CountryCodes.toIsoCode(criteria.country())
-                    .orElseThrow(() -> new ValidationException("Unknown country"));
+                    .orElseThrow(() -> new ValidationException("Unknown country", "country"));
             spec = spec.and(EmployeeSpecifications.countryEquals(country));
         }
         if (hasText(criteria.department())) {
@@ -181,7 +181,7 @@ public class EmployeeService {
         employee.setLastName(lastName.trim());
         employee.setEmail(email);
         employee.setCountry(CountryCodes.toIsoCode(country)
-                .orElseThrow(() -> new ValidationException("Unknown country")));
+                .orElseThrow(() -> new ValidationException("Unknown country", "country")));
         employee.setDepartment(resolveDepartment(department));
         employee.setDesignation(designation.trim());
         employee.setEmploymentStatus(status);
@@ -192,7 +192,7 @@ public class EmployeeService {
         String value = department.trim();
         return departmentRepository.findByCodeIgnoreCase(value)
                 .or(() -> departmentRepository.findByNameIgnoreCase(value))
-                .orElseThrow(() -> new ValidationException("Unknown department"));
+                .orElseThrow(() -> new ValidationException("Unknown department", "department"));
     }
 
     private void assertUniqueOnCreate(String employeeCode, String email) {
@@ -234,14 +234,14 @@ public class EmployeeService {
     private static EmploymentStatus parseStatus(String raw, EmploymentStatus defaultStatus) {
         if (raw == null || raw.isBlank()) {
             if (defaultStatus == null) {
-                throw new ValidationException("employmentStatus is required");
+                throw new ValidationException("employmentStatus is required", "employmentStatus");
             }
             return defaultStatus;
         }
         try {
             return EmploymentStatus.valueOf(raw.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new ValidationException("Invalid employmentStatus");
+            throw new ValidationException("Invalid employmentStatus", "employmentStatus");
         }
     }
 

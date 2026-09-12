@@ -26,6 +26,7 @@ import {
   statusLabel,
 } from '../../../shared/constants/lookup.constants';
 import { MoneyPipe } from '../../../shared/pipes/money.pipe';
+import { formatApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-employee-list',
@@ -88,12 +89,13 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
     country: [''],
     department: [''],
     designation: [''],
-    employmentStatus: [''],
+    employmentStatus: ['ACTIVE'],
   });
 
   private readonly reload$ = new Subject<void>();
   private readonly subscriptions = new Subscription();
   private listRequest?: Subscription;
+  private clearingFilters = false;
 
   ngOnInit(): void {
     this.subscriptions.add(
@@ -112,6 +114,21 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
       this.filters.controls.search.valueChanges
         .pipe(debounceTime(350), distinctUntilChanged())
         .subscribe(() => {
+          if (this.clearingFilters) {
+            return;
+          }
+          this.pageIndex = 0;
+          this.reload$.next();
+        })
+    );
+
+    this.subscriptions.add(
+      this.filters.controls.designation.valueChanges
+        .pipe(debounceTime(350), distinctUntilChanged())
+        .subscribe(() => {
+          if (this.clearingFilters) {
+            return;
+          }
           this.pageIndex = 0;
           this.reload$.next();
         })
@@ -129,17 +146,21 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
   }
 
   clearFilters(): void {
+    this.clearingFilters = true;
     this.filters.reset({
       search: '',
       country: '',
       department: '',
       designation: '',
-      employmentStatus: '',
+      employmentStatus: 'ACTIVE',
     });
     this.pageIndex = 0;
     this.sortActive = 'name';
     this.sortDirection = 'asc';
     this.reload$.next();
+    queueMicrotask(() => {
+      this.clearingFilters = false;
+    });
   }
 
   onPage(event: PageEvent): void {
@@ -203,7 +224,10 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
           this.employees = [];
           this.totalElements = 0;
           const apiError = error.error as ApiErrorResponse | undefined;
-          this.errorMessage = apiError?.message || 'Unable to load employees.';
+          this.errorMessage =
+            formatApiErrorMessage(error.error, 'Unable to load employees.') ||
+            apiError?.message ||
+            'Unable to load employees.';
         },
       });
   }

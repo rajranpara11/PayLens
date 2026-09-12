@@ -102,7 +102,7 @@ public class SalaryService {
 
     public static String requireCurrency(String raw) {
         return Currencies.normalize(raw)
-                .orElseThrow(() -> new ValidationException("Unsupported currency"));
+                .orElseThrow(() -> new ValidationException("Unsupported currency", "currency"));
     }
 
     private Employee requireEmployee(UUID employeeId) {
