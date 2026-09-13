@@ -9,6 +9,9 @@ import com.paylens.analytics.dto.AnalyticsOverviewResponse;
 import com.paylens.analytics.dto.CountryHeadcountRow;
 import com.paylens.analytics.dto.CountryPayrollRow;
 import com.paylens.analytics.dto.CurrencyCompensationStats;
+import com.paylens.analytics.dto.DepartmentSalaryRow;
+import com.paylens.analytics.dto.DesignationSalaryRow;
+import com.paylens.analytics.dto.SalaryDistributionBucket;
 import com.paylens.analytics.service.AnalyticsService;
 import com.paylens.common.exception.GlobalExceptionHandler;
 import java.math.BigDecimal;
@@ -75,5 +78,49 @@ class AnalyticsControllerTest {
         mockMvc.perform(get("/api/v1/analytics/employee-count-by-country"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].employeeCount").value(3));
+    }
+
+    @Test
+    void salaryByDepartment() throws Exception {
+        when(analyticsService.salaryByDepartment()).thenReturn(List.of(
+                new DepartmentSalaryRow(
+                        "ENG", "Engineering", "USD", 4,
+                        new BigDecimal("100000.00"), new BigDecimal("95000.00"),
+                        new BigDecimal("80000.00"), new BigDecimal("150000.00"), new BigDecimal("400000.00")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/analytics/salary-by-department"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].departmentCode").value("ENG"))
+                .andExpect(jsonPath("$[0].currency").value("USD"));
+    }
+
+    @Test
+    void salaryByDesignation() throws Exception {
+        when(analyticsService.salaryByDesignation()).thenReturn(List.of(
+                new DesignationSalaryRow(
+                        "Engineer", "USD", 2,
+                        new BigDecimal("110000.00"), new BigDecimal("110000.00"),
+                        new BigDecimal("100000.00"), new BigDecimal("120000.00"), new BigDecimal("220000.00")
+                )
+        ));
+
+        mockMvc.perform(get("/api/v1/analytics/salary-by-designation"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].designation").value("Engineer"))
+                .andExpect(jsonPath("$[0].averageSalary").value(110000.00));
+    }
+
+    @Test
+    void salaryDistribution() throws Exception {
+        when(analyticsService.salaryDistribution()).thenReturn(List.of(
+                new SalaryDistributionBucket("USD", 1, 2, new BigDecimal("80000.00"), new BigDecimal("90000.00"))
+        ));
+
+        mockMvc.perform(get("/api/v1/analytics/salary-distribution"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].bucket").value(1))
+                .andExpect(jsonPath("$[0].employeeCount").value(2));
     }
 }

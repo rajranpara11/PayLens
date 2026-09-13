@@ -173,11 +173,170 @@ class EmployeeServiceTest {
     }
 
     @Test
-    void updateThrowsWhenMissing() {
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.empty());
+    void updateChangesIdentityAndKeepsCurrentSalaryWhenSalaryOmitted() {
+        Employee employee = persistedEmployee();
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        when(employeeRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("E-2", employeeId)).thenReturn(false);
+        when(employeeRepository.existsByEmailIgnoreCaseAndIdNot("jane@acme.com", employeeId)).thenReturn(false);
+        when(departmentRepository.findByCodeIgnoreCase("Engineering")).thenReturn(Optional.of(engineering));
+        when(employeeRepository.save(employee)).thenReturn(employee);
+        when(salaryService.findCurrent(employeeId)).thenReturn(Optional.of(persistedSalary()));
+
+        UpdateEmployeeRequest request = new UpdateEmployeeRequest(
+                "E-2",
+                "Jane",
+                "Doe",
+                "jane@acme.com",
+                "US",
+                "Engineering",
+                "Senior Engineer",
+                "ON_LEAVE",
+                LocalDate.of(2023, 5, 1),
+                null
+        );
+
+        var response = employeeService.update(employeeId, request);
+
+        assertThat(response.employeeCode()).isEqualTo("E-2");
+        assertThat(response.firstName()).isEqualTo("Jane");
+        assertThat(response.country()).isEqualTo("US");
+        assertThat(response.designation()).isEqualTo("Senior Engineer");
+        assertThat(response.employmentStatus()).isEqualTo("ON_LEAVE");
+        assertThat(response.currentSalary().annualSalary()).isEqualByComparingTo("120000.00");
+        verify(salaryService, never()).apply(any(), any());
+    }
+
+    @Test
+    void updateAppliesNewSalaryWhenProvided() {
+        Employee employee = persistedEmployee();
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        when(employeeRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("E-1", employeeId)).thenReturn(false);
+        when(employeeRepository.existsByEmailIgnoreCaseAndIdNot("john@acme.com", employeeId)).thenReturn(false);
+        when(departmentRepository.findByCodeIgnoreCase("Engineering")).thenReturn(Optional.of(engineering));
+        when(employeeRepository.save(employee)).thenReturn(employee);
+        Salary raised = persistedSalary();
+        raised.setAnnualSalary(new BigDecimal("150000.00"));
+        when(salaryService.apply(eq(employee), any(SalaryRequest.class))).thenReturn(raised);
+
+        UpdateEmployeeRequest request = new UpdateEmployeeRequest(
+                "E-1",
+                "John",
+                "Doe",
+                "john@acme.com",
+                "IN",
+                "Engineering",
+                "Engineer",
+                "ACTIVE",
+                LocalDate.of(2024, 1, 15),
+                new SalaryRequest(new BigDecimal("150000.00"), "INR", LocalDate.of(2024, 6, 1))
+        );
+
+        var response = employeeService.update(employeeId, request);
+
+        assertThat(response.currentSalary().annualSalary()).isEqualByComparingTo("150000.00");
+        verify(salaryService).apply(eq(employee), any(SalaryRequest.class));
+    }
+
+    @Test
+    void updateRejectsDuplicateEmployeeCode() {
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(persistedEmployee()));
+        when(employeeRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("E-1", employeeId)).thenReturn(true);
 
         assertThatThrownBy(() -> employeeService.update(employeeId, updateRequest()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("employeeCode");
+        verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    void updateRejectsDuplicateEmail() {
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(persistedEmployee()));
+        when(employeeRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("E-1", employeeId)).thenReturn(false);
+        when(employeeRepository.existsByEmailIgnoreCaseAndIdNot("john@acme.com", employeeId)).thenReturn(true);
+
+        assertThatThrownBy(() -> employeeService.update(employeeId, updateRequest()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("email");
+    }
+
+    @Test
+    void createRejectsUnknownCountry() {
+        when(employeeRepository.existsByEmployeeCodeIgnoreCase("E-1")).thenReturn(false);
+        when(employeeRepository.existsByEmailIgnoreCase("john@acme.com")).thenReturn(false);
+
+        CreateEmployeeRequest request = new CreateEmployeeRequest(
+                "E-1",
+                "John",
+                "Doe",
+                "john@acme.com",
+                "Narnia",
+                "Engineering",
+                "Engineer",
+                "ACTIVE",
+                LocalDate.of(2024, 1, 15),
+                new SalaryRequest(new BigDecimal("120000.00"), "INR", LocalDate.of(2024, 1, 15))
+        );
+
+        assertThatThrownBy(() -> employeeService.create(request))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("country");
+    }
+
+    @Test
+    void createRejectsInvalidEmploymentStatus() {
+        when(employeeRepository.existsByEmployeeCodeIgnoreCase("E-1")).thenReturn(false);
+        when(employeeRepository.existsByEmailIgnoreCase("john@acme.com")).thenReturn(false);
+
+        CreateEmployeeRequest request = new CreateEmployeeRequest(
+                "E-1",
+                "John",
+                "Doe",
+                "john@acme.com",
+                "IN",
+                "Engineering",
+                "Engineer",
+                "VACATIONING",
+                LocalDate.of(2024, 1, 15),
+                new SalaryRequest(new BigDecimal("120000.00"), "INR", LocalDate.of(2024, 1, 15))
+        );
+
+        assertThatThrownBy(() -> employeeService.create(request))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("employmentStatus");
+    }
+
+    @Test
+    void deactivateThrowsWhenMissing() {
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> employeeService.deactivate(employeeId))
                 .isInstanceOf(NotFoundException.class);
+        verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    void listClampsPageSizeToOneHundred() {
+        Employee employee = persistedEmployee();
+        Pageable requested = PageRequest.of(0, 500);
+        Pageable expected = PageRequest.of(0, 100);
+        when(employeeRepository.findAll(any(Specification.class), eq(expected)))
+                .thenReturn(new PageImpl<>(List.of(employee), expected, 1));
+        when(salaryRepository.findCurrentByEmployeeIds(eq(List.of(employeeId)), eq(LocalDate.of(2024, 6, 1))))
+                .thenReturn(List.of(persistedSalary()));
+
+        employeeService.list(new EmployeeSearchCriteria(null, null, null, null, null, null), requested);
+
+        verify(employeeRepository).findAll(any(Specification.class), eq(expected));
+    }
+
+    @Test
+    void listRejectsUnknownCountryFilter() {
+        assertThatThrownBy(() -> employeeService.list(
+                new EmployeeSearchCriteria(null, "Atlantis", null, null, null, null),
+                PageRequest.of(0, 25)
+        )).isInstanceOf(ValidationException.class)
+                .hasMessageContaining("country");
+        verify(employeeRepository, never()).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @Test

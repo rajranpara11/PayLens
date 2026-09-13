@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.paylens.analytics.dto.CountryPayrollRow;
 import com.paylens.analytics.dto.CurrencyCompensationStats;
 import com.paylens.analytics.dto.DepartmentSalaryRow;
+import com.paylens.analytics.dto.DesignationSalaryRow;
+import com.paylens.analytics.dto.SalaryDistributionBucket;
 import com.paylens.employee.entity.Department;
 import com.paylens.employee.entity.Employee;
 import com.paylens.employee.entity.EmploymentStatus;
@@ -125,11 +127,61 @@ class AnalyticsRepositoryIntegrationTest {
     }
 
     @Test
-    void salaryDistributionIsPerCurrency() {
+    void salaryByDesignationGroupsByTitleAndCurrency() {
+        List<DesignationSalaryRow> rows = analyticsRepository.salaryByDesignation(AS_OF);
+
+        assertThat(rows).anySatisfy(row -> {
+            assertThat(row.designation()).isEqualTo("Junior Software Engineer");
+            assertThat(row.currency()).isEqualTo("INR");
+            assertThat(row.employeeCount()).isEqualTo(1);
+            assertThat(row.totalPayroll()).isEqualByComparingTo("500000.00");
+        });
+        assertThat(rows).anySatisfy(row -> {
+            assertThat(row.designation()).isEqualTo("Senior Software Engineer");
+            assertThat(row.currency()).isEqualTo("INR");
+            assertThat(row.maxSalary()).isEqualByComparingTo("1800000.00");
+        });
+        assertThat(rows).noneMatch(row -> "Account Executive".equals(row.designation())
+                && "USD".equals(row.currency())
+                && row.employeeCount() == 2); // terminated AE excluded → only 1 active AE
+        assertThat(rows).anySatisfy(row -> {
+            assertThat(row.designation()).isEqualTo("Account Executive");
+            assertThat(row.currency()).isEqualTo("USD");
+            assertThat(row.employeeCount()).isEqualTo(1);
+        });
+    }
+
+    @Test
+    void salaryDistributionPutsMinAndMaxAtBandEnds() {
+        // INR: 500000 and 1800000 → 5 equal bands; extremes land in buckets 1 and 5
         assertThat(analyticsRepository.salaryDistribution(AS_OF))
-                .extracting(b -> b.currency())
-                .contains("INR", "USD")
-                .doesNotContain("GBP");
+                .filteredOn(b -> "INR".equals(b.currency()))
+                .anySatisfy(b -> {
+                    assertThat(b.bucket()).isEqualTo(1);
+                    assertThat(b.employeeCount()).isEqualTo(1);
+                    assertThat(b.bandMin()).isEqualByComparingTo("500000.00");
+                })
+                .anySatisfy(b -> {
+                    assertThat(b.bucket()).isEqualTo(5);
+                    assertThat(b.employeeCount()).isEqualTo(1);
+                    assertThat(b.bandMax()).isEqualByComparingTo("1800000.00");
+                });
+    }
+
+    @Test
+    void emptyDatasetReturnsZeroCountsAndEmptyAggregates() {
+        salaryRepository.deleteAll();
+        employeeRepository.deleteAll();
+        departmentRepository.deleteAll();
+
+        assertThat(analyticsRepository.employeeCounts().total()).isZero();
+        assertThat(analyticsRepository.employeeCounts().employed()).isZero();
+        assertThat(analyticsRepository.compensationByCurrency(AS_OF)).isEmpty();
+        assertThat(analyticsRepository.payrollByCountry(AS_OF)).isEmpty();
+        assertThat(analyticsRepository.salaryByDepartment(AS_OF)).isEmpty();
+        assertThat(analyticsRepository.salaryByDesignation(AS_OF)).isEmpty();
+        assertThat(analyticsRepository.salaryDistribution(AS_OF)).isEmpty();
+        assertThat(analyticsRepository.employeeCountByCountry()).isEmpty();
     }
 
     @Test
