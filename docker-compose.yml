@@ -1,0 +1,81 @@
+# PayLens local Docker Compose stack.
+# Copy .env.example → .env and set secrets before starting.
+# Never commit .env.
+
+name: paylens
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - paylens
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: "8081"
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      PAYLENS_HR_USERNAME: ${PAYLENS_HR_USERNAME}
+      PAYLENS_HR_PASSWORD: ${PAYLENS_HR_PASSWORD:-}
+      PAYLENS_HR_PASSWORD_HASH: ${PAYLENS_HR_PASSWORD_HASH:-}
+      PAYLENS_CORS_ORIGINS: ${PAYLENS_CORS_ORIGINS}
+      PAYLENS_SEED_ENABLED: ${PAYLENS_SEED_ENABLED:-false}
+      PAYLENS_SEED_EMPLOYEE_COUNT: ${PAYLENS_SEED_EMPLOYEE_COUNT:-10000}
+      PAYLENS_SEED_RANDOM_SEED: ${PAYLENS_SEED_RANDOM_SEED:-42}
+      PAYLENS_SEED_BATCH_SIZE: ${PAYLENS_SEED_BATCH_SIZE:-500}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s
+    networks:
+      - paylens
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+    networks:
+      - paylens
+
+volumes:
+  pgdata:
+
+networks:
+  paylens:
+    driver: bridge

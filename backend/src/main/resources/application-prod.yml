@@ -1,0 +1,47 @@
+# Production profile — all secrets must come from the environment (no defaults).
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT_MS:30000}
+  jpa:
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8081}
+  forward-headers-strategy: framework
+
+logging:
+  level:
+    root: INFO
+    com.paylens: INFO
+    org.flywaydb: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+paylens:
+  cors:
+    allowed-origins: ${PAYLENS_CORS_ORIGINS}
+  security:
+    hr-username: ${PAYLENS_HR_USERNAME}
+    hr-password-hash: ${PAYLENS_HR_PASSWORD_HASH:}
+    hr-password: ${PAYLENS_HR_PASSWORD:}
+  seed:
+    enabled: ${PAYLENS_SEED_ENABLED:false}
+    employee-count: ${PAYLENS_SEED_EMPLOYEE_COUNT:10000}
+    random-seed: ${PAYLENS_SEED_RANDOM_SEED:42}
+    batch-size: ${PAYLENS_SEED_BATCH_SIZE:500}

@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.idea
+.vscode
+*.log
+coverage
+.angular
+README.md
+.editorconfig
+**/karma.conf.js
+**/*.spec.ts
