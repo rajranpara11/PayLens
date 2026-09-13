@@ -113,6 +113,21 @@ cd backend && mvn test
 cd frontend && npm run test:ci
 ```
 
+## Continuous Integration (GitHub Actions)
+
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+**Triggers:** every `push` and `pull_request` (in-progress runs for the same ref are cancelled).
+
+| Job | Steps | Fails when |
+| --- | --- | --- |
+| **Backend** | Temurin **Java 21**, Maven dependency cache, `mvn -B verify` | Any test failure or packaging failure |
+| **Frontend** | **Node 22**, `npm ci`, Chrome for Karma, `npm run test:ci`, production `ng build` | Any unit test or build failure |
+
+Jobs run in **parallel**. Both must pass for the workflow to succeed. There is **no deploy** step.
+
+**Database in CI:** backend Spring tests use the `test` profile with **H2 in PostgreSQL compatibility mode** (`application-test.yml` + Flyway). That covers integration-style repository/API tests without a live Postgres service. Docker Compose still uses real PostgreSQL for local/runtime stacks.
+
 ---
 
 ## Project layout
@@ -122,6 +137,7 @@ PayLens/
   backend/          Spring Boot API (Dockerfile)
   frontend/         Angular SPA (Dockerfile + nginx)
   docs/             Architecture, security, performance, seeding
+  .github/workflows/ci.yml
   docker-compose.yml
   .env.example
 ```
