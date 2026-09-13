@@ -122,7 +122,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.destroyCharts();
     }
 
-    const opts = { skipErrorSnack: true };
+    const opts = { skipErrorSnack: true, forceRefresh: hadData };
     this.loadSub = forkJoin({
       overview: this.analyticsService.getOverview(opts),
       headcountByCountry: this.analyticsService.getEmployeeCountByCountry(opts),

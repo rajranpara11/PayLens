@@ -30,9 +30,10 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public AnalyticsOverviewResponse overview() {
         LocalDate asOf = today();
+        AnalyticsRepository.EmployeeCounts counts = analyticsRepository.employeeCounts();
         return new AnalyticsOverviewResponse(
-                analyticsRepository.countAllEmployees(),
-                analyticsRepository.countEmployedEmployees(),
+                counts.total(),
+                counts.employed(),
                 analyticsRepository.compensationByCurrency(asOf),
                 CURRENCY_NOTE
         );

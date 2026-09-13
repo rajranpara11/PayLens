@@ -1,6 +1,13 @@
 import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -31,6 +38,7 @@ import { formatApiErrorMessage } from '../../../shared/utils/api-error.util';
 @Component({
   selector: 'app-employee-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DecimalPipe,
     ReactiveFormsModule,
@@ -56,6 +64,7 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
   private readonly employeeService = inject(EmployeeService);
   private readonly departmentService = inject(DepartmentService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   readonly displayedColumns = [
     'employeeCode',
@@ -102,6 +111,7 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
       this.departmentService.list().subscribe({
         next: (departments) => {
           this.departments = departments;
+          this.cdr.markForCheck();
         },
       })
     );
@@ -196,6 +206,7 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
     this.listRequest?.unsubscribe();
     this.loading = true;
     this.errorMessage = null;
+    this.cdr.markForCheck();
     const value = this.filters.getRawValue();
     const sortField = this.mapSortField(this.sortActive);
 
@@ -218,6 +229,7 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
           this.employees = page.content;
           this.totalElements = page.totalElements;
           this.loading = false;
+          this.cdr.markForCheck();
         },
         error: (error: HttpErrorResponse) => {
           this.loading = false;
@@ -228,6 +240,7 @@ export class EmployeeListComponent implements OnInit, OnDestroy {
             formatApiErrorMessage(error.error, 'Unable to load employees.') ||
             apiError?.message ||
             'Unable to load employees.';
+          this.cdr.markForCheck();
         },
       });
   }

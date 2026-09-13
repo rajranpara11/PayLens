@@ -48,25 +48,32 @@ public final class EmployeeSpecifications {
         return (root, query, cb) -> cb.equal(root.get("employmentStatus"), status);
     }
 
+    /**
+     * Matches employees whose <em>current</em> salary (latest {@code effectiveFrom <= onDate})
+     * uses the given currency. Uses an anti-join instead of nested max + exists subqueries.
+     */
     public static Specification<Employee> currentCurrencyEquals(String currency, LocalDate onDate) {
         return (root, query, cb) -> {
-            Subquery<LocalDate> latest = query.subquery(LocalDate.class);
-            Root<Salary> latestRoot = latest.from(Salary.class);
-            latest.select(cb.greatest(latestRoot.<LocalDate>get("effectiveFrom")));
-            latest.where(
-                    cb.equal(latestRoot.get("employee"), root),
-                    cb.lessThanOrEqualTo(latestRoot.get("effectiveFrom"), onDate)
+            Subquery<Integer> currentCurrency = query.subquery(Integer.class);
+            Root<Salary> salary = currentCurrency.from(Salary.class);
+
+            Subquery<Integer> hasLater = currentCurrency.subquery(Integer.class);
+            Root<Salary> newer = hasLater.from(Salary.class);
+            hasLater.select(cb.literal(1));
+            hasLater.where(
+                    cb.equal(newer.get("employee"), root),
+                    cb.greaterThan(newer.get("effectiveFrom"), salary.get("effectiveFrom")),
+                    cb.lessThanOrEqualTo(newer.get("effectiveFrom"), onDate)
             );
 
-            Subquery<Integer> exists = query.subquery(Integer.class);
-            Root<Salary> salary = exists.from(Salary.class);
-            exists.select(cb.literal(1));
-            exists.where(
+            currentCurrency.select(cb.literal(1));
+            currentCurrency.where(
                     cb.equal(salary.get("employee"), root),
                     cb.equal(salary.get("currency"), currency),
-                    cb.equal(salary.get("effectiveFrom"), latest)
+                    cb.lessThanOrEqualTo(salary.get("effectiveFrom"), onDate),
+                    cb.not(cb.exists(hasLater))
             );
-            return cb.exists(exists);
+            return cb.exists(currentCurrency);
         };
     }
 

@@ -35,8 +35,7 @@ class AnalyticsServiceTest {
 
     @Test
     void overviewKeepsCurrenciesSeparateAndDocumentsRule() {
-        when(analyticsRepository.countAllEmployees()).thenReturn(100L);
-        when(analyticsRepository.countEmployedEmployees()).thenReturn(90L);
+        when(analyticsRepository.employeeCounts()).thenReturn(new AnalyticsRepository.EmployeeCounts(100L, 90L));
         when(analyticsRepository.compensationByCurrency(LocalDate.of(2024, 6, 15))).thenReturn(List.of(
                 new CurrencyCompensationStats(
                         "INR", 50, bd("1000000"), bd("900000"), bd("500000"), bd("2000000"), bd("50000000")
@@ -56,6 +55,7 @@ class AnalyticsServiceTest {
                 .containsExactly("INR", "USD");
         assertThat(overview.currencyNote()).contains("must not be summed");
         // No single blended average/total field exists on the response type.
+        verify(analyticsRepository).employeeCounts();
         verify(analyticsRepository).compensationByCurrency(LocalDate.of(2024, 6, 15));
     }
 

@@ -40,6 +40,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
@@ -89,9 +90,7 @@ class EmployeeServiceTest {
             employee.setId(employeeId);
             return employee;
         });
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(persistedEmployee()));
         when(salaryService.apply(any(Employee.class), any(SalaryRequest.class))).thenReturn(persistedSalary());
-        when(salaryService.findCurrent(employeeId)).thenReturn(Optional.of(persistedSalary()));
 
         var response = employeeService.create(createRequest());
 
@@ -99,6 +98,7 @@ class EmployeeServiceTest {
         assertThat(response.country()).isEqualTo("IN");
         assertThat(response.currentSalary().currency()).isEqualTo("INR");
         verify(salaryService).apply(any(Employee.class), any(SalaryRequest.class));
+        verify(employeeRepository, never()).findById(any());
     }
 
     @Test
@@ -198,7 +198,7 @@ class EmployeeServiceTest {
         Pageable pageable = PageRequest.of(0, 25);
         when(employeeRepository.findAll(any(Specification.class), eq(pageable)))
                 .thenReturn(new PageImpl<>(List.of(employee), pageable, 1));
-        when(salaryRepository.findByEmployee_IdIn(List.of(employeeId)))
+        when(salaryRepository.findCurrentByEmployeeIds(eq(List.of(employeeId)), eq(LocalDate.of(2024, 6, 1))))
                 .thenReturn(List.of(persistedSalary()));
 
         Page<?> page = employeeService.list(new EmployeeSearchCriteria("john", "India", "Engineering", null, null, "INR"), pageable);
@@ -206,6 +206,22 @@ class EmployeeServiceTest {
         assertThat(page.getTotalElements()).isEqualTo(1);
         verify(employeeRepository).findAll(any(Specification.class), eq(pageable));
         verify(employeeRepository, never()).findAll();
+        verify(salaryRepository).findCurrentByEmployeeIds(eq(List.of(employeeId)), eq(LocalDate.of(2024, 6, 1)));
+    }
+
+    @Test
+    void listRejectsUnknownSortProperties() {
+        Employee employee = persistedEmployee();
+        Pageable requested = PageRequest.of(0, 25, Sort.by("passwordHash"));
+        Pageable expected = PageRequest.of(0, 25, Sort.by(Sort.Direction.ASC, "lastName"));
+        when(employeeRepository.findAll(any(Specification.class), eq(expected)))
+                .thenReturn(new PageImpl<>(List.of(employee), expected, 1));
+        when(salaryRepository.findCurrentByEmployeeIds(eq(List.of(employeeId)), eq(LocalDate.of(2024, 6, 1))))
+                .thenReturn(List.of(persistedSalary()));
+
+        employeeService.list(new EmployeeSearchCriteria(null, null, null, null, null, null), requested);
+
+        verify(employeeRepository).findAll(any(Specification.class), eq(expected));
     }
 
     private CreateEmployeeRequest createRequest() {

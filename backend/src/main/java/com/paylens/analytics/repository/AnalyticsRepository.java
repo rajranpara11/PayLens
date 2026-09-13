@@ -21,28 +21,26 @@ import org.springframework.stereotype.Repository;
 public class AnalyticsRepository {
 
     private static final String CURRENT_SALARY_CTE = """
-            WITH ranked AS (
+            WITH latest AS (
+                SELECT employee_id, MAX(effective_from) AS effective_from
+                FROM salary
+                WHERE effective_from <= ?
+                GROUP BY employee_id
+            ),
+            current_salary AS (
                 SELECT
                     s.employee_id,
                     s.annual_salary,
                     s.currency,
                     e.country,
                     e.department_id,
-                    e.designation,
-                    e.employment_status,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY s.employee_id
-                        ORDER BY s.effective_from DESC
-                    ) AS rn
+                    e.designation
                 FROM salary s
+                INNER JOIN latest l
+                    ON l.employee_id = s.employee_id
+                   AND l.effective_from = s.effective_from
                 INNER JOIN employee e ON e.id = s.employee_id
-                WHERE s.effective_from <= ?
-                  AND e.employment_status IN ('ACTIVE', 'ON_LEAVE')
-            ),
-            current_salary AS (
-                SELECT employee_id, annual_salary, currency, country, department_id, designation
-                FROM ranked
-                WHERE rn = 1
+                WHERE e.employment_status IN ('ACTIVE', 'ON_LEAVE')
             )
             """;
 
@@ -52,20 +50,26 @@ public class AnalyticsRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public EmployeeCounts employeeCounts() {
+        EmployeeCounts counts = jdbcTemplate.queryForObject(
+                """
+                SELECT
+                    COUNT(*) AS total_count,
+                    COALESCE(SUM(CASE WHEN employment_status IN ('ACTIVE', 'ON_LEAVE') THEN 1 ELSE 0 END), 0)
+                        AS employed_count
+                FROM employee
+                """,
+                (rs, rowNum) -> new EmployeeCounts(rs.getLong("total_count"), rs.getLong("employed_count"))
+        );
+        return counts == null ? new EmployeeCounts(0L, 0L) : counts;
+    }
+
     public long countAllEmployees() {
-        Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM employee", Long.class);
-        return count == null ? 0L : count;
+        return employeeCounts().total();
     }
 
     public long countEmployedEmployees() {
-        Long count = jdbcTemplate.queryForObject(
-                """
-                SELECT COUNT(*) FROM employee
-                WHERE employment_status IN ('ACTIVE', 'ON_LEAVE')
-                """,
-                Long.class
-        );
-        return count == null ? 0L : count;
+        return employeeCounts().employed();
     }
 
     public List<CurrencyCompensationStats> compensationByCurrency(LocalDate asOf) {
@@ -237,5 +241,8 @@ public class AnalyticsRepository {
             return null;
         }
         return value.setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    public record EmployeeCounts(long total, long employed) {
     }
 }

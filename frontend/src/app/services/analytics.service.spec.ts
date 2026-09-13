@@ -32,4 +32,41 @@ describe('AnalyticsService', () => {
       currencyNote: 'grouped by currency',
     });
   });
+
+  it('reuses cached overview within TTL', () => {
+    let first: unknown;
+    let second: unknown;
+    service.getOverview().subscribe((overview) => (first = overview));
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/analytics/overview`);
+    req.flush({
+      totalEmployees: 10000,
+      employedEmployees: 9000,
+      compensationByCurrency: [],
+      currencyNote: 'grouped by currency',
+    });
+
+    service.getOverview().subscribe((overview) => (second = overview));
+    httpMock.expectNone(`${environment.apiBaseUrl}/analytics/overview`);
+    expect(second).toEqual(first);
+  });
+
+  it('forceRefresh bypasses cache', () => {
+    service.getOverview().subscribe();
+    httpMock.expectOne(`${environment.apiBaseUrl}/analytics/overview`).flush({
+      totalEmployees: 1,
+      employedEmployees: 1,
+      compensationByCurrency: [],
+      currencyNote: 'grouped by currency',
+    });
+
+    service.getOverview({ forceRefresh: true }).subscribe((overview) => {
+      expect(overview.totalEmployees).toBe(2);
+    });
+    httpMock.expectOne(`${environment.apiBaseUrl}/analytics/overview`).flush({
+      totalEmployees: 2,
+      employedEmployees: 2,
+      compensationByCurrency: [],
+      currencyNote: 'grouped by currency',
+    });
+  });
 });

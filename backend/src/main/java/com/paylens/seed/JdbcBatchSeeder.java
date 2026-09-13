@@ -7,13 +7,19 @@ import com.paylens.seed.SeedModels.SeedDataset;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
+/**
+ * JDBC bulk seeder. Commits per batch so a 10k seed does not hold one giant transaction.
+ */
 @Component
 public class JdbcBatchSeeder {
 
@@ -37,19 +43,21 @@ public class JdbcBatchSeeder {
             """;
 
     private final JdbcTemplate jdbcTemplate;
+    private final TransactionTemplate transactionTemplate;
 
-    public JdbcBatchSeeder(JdbcTemplate jdbcTemplate) {
+    public JdbcBatchSeeder(JdbcTemplate jdbcTemplate, PlatformTransactionManager transactionManager) {
         this.jdbcTemplate = jdbcTemplate;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public void seed(SeedDataset dataset, int batchSize) {
         Instant stamped = Instant.parse("2024-01-01T00:00:00Z");
         Timestamp ts = Timestamp.from(stamped);
+        int size = Math.max(1, batchSize);
 
-        insertDepartments(dataset.departments(), ts);
-        insertEmployees(dataset.employees(), ts, batchSize);
-        insertSalaries(dataset.employees(), ts, batchSize);
+        transactionTemplate.executeWithoutResult(status -> insertDepartments(dataset.departments(), ts));
+        insertEmployees(dataset.employees(), ts, size);
+        insertSalaries(dataset.employees(), ts, size);
         log.info(
                 "Seed persisted: {} departments, {} employees, {} salary rows",
                 dataset.departments().size(),
@@ -70,47 +78,66 @@ public class JdbcBatchSeeder {
 
     private void insertEmployees(List<EmployeeSeed> employees, Timestamp ts, int batchSize) {
         for (int start = 0; start < employees.size(); start += batchSize) {
-            List<EmployeeSeed> chunk = employees.subList(start, Math.min(start + batchSize, employees.size()));
-            jdbcTemplate.batchUpdate(INSERT_EMPLOYEE, chunk, chunk.size(), (ps, employee) -> {
-                ps.setObject(1, employee.id());
-                ps.setString(2, employee.employeeCode());
-                ps.setString(3, employee.firstName());
-                ps.setString(4, employee.lastName());
-                ps.setString(5, employee.email());
-                ps.setString(6, employee.country());
-                ps.setObject(7, employee.departmentId());
-                ps.setString(8, employee.designation());
-                ps.setString(9, employee.employmentStatus());
-                ps.setDate(10, Date.valueOf(employee.joiningDate()));
-                ps.setTimestamp(11, ts);
-                ps.setTimestamp(12, ts);
-            });
+            int end = Math.min(start + batchSize, employees.size());
+            List<EmployeeSeed> chunk = employees.subList(start, end);
+            transactionTemplate.executeWithoutResult(status ->
+                    jdbcTemplate.batchUpdate(INSERT_EMPLOYEE, chunk, chunk.size(), (ps, employee) -> {
+                        ps.setObject(1, employee.id());
+                        ps.setString(2, employee.employeeCode());
+                        ps.setString(3, employee.firstName());
+                        ps.setString(4, employee.lastName());
+                        ps.setString(5, employee.email());
+                        ps.setString(6, employee.country());
+                        ps.setObject(7, employee.departmentId());
+                        ps.setString(8, employee.designation());
+                        ps.setString(9, employee.employmentStatus());
+                        ps.setDate(10, Date.valueOf(employee.joiningDate()));
+                        ps.setTimestamp(11, ts);
+                        ps.setTimestamp(12, ts);
+                    })
+            );
             log.info("Inserted employees {}-{}", start + 1, start + chunk.size());
         }
     }
 
     private void insertSalaries(List<EmployeeSeed> employees, Timestamp ts, int batchSize) {
-        List<SalaryRow> rows = employees.stream()
-                .flatMap(employee -> employee.salaries().stream()
-                        .map(salary -> new SalaryRow(employee.id(), salary)))
-                .toList();
-
-        for (int start = 0; start < rows.size(); start += batchSize) {
-            List<SalaryRow> chunk = rows.subList(start, Math.min(start + batchSize, rows.size()));
-            jdbcTemplate.batchUpdate(INSERT_SALARY, chunk, chunk.size(), (ps, row) -> {
-                SalarySeed salary = row.salary();
-                ps.setObject(1, salary.id());
-                ps.setObject(2, row.employeeId());
-                ps.setBigDecimal(3, salary.annualSalary());
-                ps.setString(4, salary.currency());
-                ps.setDate(5, Date.valueOf(salary.effectiveFrom()));
-                ps.setTimestamp(6, ts);
-                ps.setTimestamp(7, ts);
-            });
-            log.info("Inserted salaries {}-{}", start + 1, start + chunk.size());
+        List<SalaryRow> buffer = new ArrayList<>(batchSize);
+        int inserted = 0;
+        for (EmployeeSeed employee : employees) {
+            for (SalarySeed salary : employee.salaries()) {
+                buffer.add(new SalaryRow(employee.id(), salary));
+                if (buffer.size() >= batchSize) {
+                    flushSalaries(buffer, ts);
+                    inserted += buffer.size();
+                    log.info("Inserted salaries {}-{}", inserted - buffer.size() + 1, inserted);
+                    buffer.clear();
+                }
+            }
+        }
+        if (!buffer.isEmpty()) {
+            int from = inserted + 1;
+            flushSalaries(buffer, ts);
+            inserted += buffer.size();
+            log.info("Inserted salaries {}-{}", from, inserted);
         }
     }
 
-    private record SalaryRow(java.util.UUID employeeId, SalarySeed salary) {
+    private void flushSalaries(List<SalaryRow> rows, Timestamp ts) {
+        List<SalaryRow> chunk = List.copyOf(rows);
+        transactionTemplate.executeWithoutResult(status ->
+                jdbcTemplate.batchUpdate(INSERT_SALARY, chunk, chunk.size(), (ps, row) -> {
+                    SalarySeed salary = row.salary();
+                    ps.setObject(1, salary.id());
+                    ps.setObject(2, row.employeeId());
+                    ps.setBigDecimal(3, salary.annualSalary());
+                    ps.setString(4, salary.currency());
+                    ps.setDate(5, Date.valueOf(salary.effectiveFrom()));
+                    ps.setTimestamp(6, ts);
+                    ps.setTimestamp(7, ts);
+                })
+        );
+    }
+
+    private record SalaryRow(UUID employeeId, SalarySeed salary) {
     }
 }

@@ -19,15 +19,16 @@ import com.paylens.salary.repository.SalaryRepository;
 import com.paylens.salary.service.SalaryService;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,8 +97,8 @@ public class EmployeeService {
                 request.joiningDate()
         );
         Employee saved = employeeRepository.save(employee);
-        salaryService.apply(saved, request.salary());
-        return get(saved.getId());
+        Salary salary = salaryService.apply(saved, request.salary());
+        return EmployeeMapper.toResponse(saved, salary);
     }
 
     @Transactional
@@ -122,10 +123,13 @@ public class EmployeeService {
                 request.joiningDate()
         );
         employeeRepository.save(employee);
+        Salary salary;
         if (request.salary() != null) {
-            salaryService.apply(employee, request.salary());
+            salary = salaryService.apply(employee, request.salary());
+        } else {
+            salary = salaryService.findCurrent(id).orElse(null);
         }
-        return get(id);
+        return EmployeeMapper.toResponse(employee, salary);
     }
 
     @Transactional
@@ -218,17 +222,40 @@ public class EmployeeService {
             return Map.of();
         }
         LocalDate today = LocalDate.now(clock);
-        return salaryRepository.findByEmployee_IdIn(employeeIds).stream()
-                .filter(salary -> !salary.getEffectiveFrom().isAfter(today))
-                .collect(Collectors.groupingBy(salary -> salary.getEmployee().getId()))
-                .entrySet()
-                .stream()
+        return salaryRepository.findCurrentByEmployeeIds(employeeIds, today).stream()
                 .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> entry.getValue().stream()
-                                .max(Comparator.comparing(Salary::getEffectiveFrom))
-                                .orElseThrow()
+                        salary -> salary.getEmployee().getId(),
+                        salary -> salary,
+                        (left, right) -> left.getEffectiveFrom().isAfter(right.getEffectiveFrom()) ? left : right
                 ));
+    }
+
+    private static final Set<String> ALLOWED_SORT_PROPERTIES = Set.of(
+            "lastName",
+            "firstName",
+            "employeeCode",
+            "joiningDate",
+            "country",
+            "designation",
+            "employmentStatus",
+            "department.name"
+    );
+
+    private static Pageable clamp(Pageable pageable) {
+        int size = Math.min(pageable.getPageSize(), MAX_PAGE_SIZE);
+        if (size < 1) {
+            size = 25;
+        }
+        Sort sort = pageable.getSort();
+        if (sort.isSorted()) {
+            List<Sort.Order> safeOrders = sort.stream()
+                    .filter(order -> ALLOWED_SORT_PROPERTIES.contains(order.getProperty()))
+                    .toList();
+            sort = safeOrders.isEmpty()
+                    ? Sort.by(Sort.Direction.ASC, "lastName")
+                    : Sort.by(safeOrders);
+        }
+        return PageRequest.of(pageable.getPageNumber(), size, sort);
     }
 
     private static EmploymentStatus parseStatus(String raw, EmploymentStatus defaultStatus) {
@@ -251,14 +278,6 @@ public class EmployeeService {
 
     private static String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static Pageable clamp(Pageable pageable) {
-        int size = Math.min(pageable.getPageSize(), MAX_PAGE_SIZE);
-        if (size < 1) {
-            size = 25;
-        }
-        return PageRequest.of(pageable.getPageNumber(), size, pageable.getSort());
     }
 
     private static boolean hasText(String value) {
