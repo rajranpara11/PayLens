@@ -23,6 +23,12 @@ public class SecurityProperties {
      */
     private String hrPassword = "";
 
+    /**
+     * When true, OpenAPI and Swagger UI paths are publicly accessible.
+     * Disabled in the {@code prod} profile.
+     */
+    private boolean exposeApiDocs = true;
+
     public String getHrUsername() {
         return hrUsername;
     }
@@ -45,6 +51,14 @@ public class SecurityProperties {
 
     public void setHrPassword(String hrPassword) {
         this.hrPassword = hrPassword;
+    }
+
+    public boolean isExposeApiDocs() {
+        return exposeApiDocs;
+    }
+
+    public void setExposeApiDocs(boolean exposeApiDocs) {
+        this.exposeApiDocs = exposeApiDocs;
     }
 
     public boolean hasPasswordHash() {

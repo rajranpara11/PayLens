@@ -13,6 +13,7 @@ import { Department, Employee } from '../../../models/employee.model';
 import { Salary } from '../../../models/salary.model';
 import { DepartmentService } from '../../../services/department.service';
 import { EmployeeService } from '../../../services/employee.service';
+import { AnalyticsService } from '../../../services/analytics.service';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
@@ -55,6 +56,7 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly employeeService = inject(EmployeeService);
   private readonly departmentService = inject(DepartmentService);
+  private readonly analyticsService = inject(AnalyticsService);
   private readonly dialog = inject(MatDialog);
 
   readonly historyColumns = ['effectiveFrom', 'annualSalary', 'currency'];
@@ -155,6 +157,7 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
         .subscribe((updated?: Employee) => {
           if (updated) {
             this.employee = updated;
+            this.analyticsService.clearCache();
           }
         });
     };
@@ -190,6 +193,7 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
       .afterClosed()
       .subscribe((salary?: Salary) => {
         if (salary) {
+          this.analyticsService.clearCache();
           this.load();
         }
       });
@@ -216,6 +220,7 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
         this.employeeService.deactivate(this.employee.id).subscribe({
           next: () => {
             this.deactivating = false;
+            this.analyticsService.clearCache();
             this.load();
           },
           error: () => {

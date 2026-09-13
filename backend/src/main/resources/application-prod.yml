@@ -15,6 +15,17 @@ spring:
 server:
   port: ${SERVER_PORT:8081}
   forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        # Default true for HTTPS deploys. Local Compose over HTTP must set PAYLENS_SESSION_COOKIE_SECURE=false.
+        secure: ${PAYLENS_SESSION_COOKIE_SECURE:true}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 logging:
   level:
@@ -40,6 +51,7 @@ paylens:
     hr-username: ${PAYLENS_HR_USERNAME}
     hr-password-hash: ${PAYLENS_HR_PASSWORD_HASH:}
     hr-password: ${PAYLENS_HR_PASSWORD:}
+    expose-api-docs: false
   seed:
     enabled: ${PAYLENS_SEED_ENABLED:false}
     employee-count: ${PAYLENS_SEED_EMPLOYEE_COUNT:10000}

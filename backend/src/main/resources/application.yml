@@ -55,6 +55,8 @@ paylens:
     # Must be a real BCrypt hash (starts with $2a$ / $2b$ / $2y$). Leave empty for local password bootstrap.
     hr-password-hash: ${PAYLENS_HR_PASSWORD_HASH:}
     hr-password: ${PAYLENS_HR_PASSWORD:}
+    # When false, OpenAPI/Swagger paths are not publicly permitted (prod default).
+    expose-api-docs: ${PAYLENS_EXPOSE_API_DOCS:true}
   seed:
     enabled: false
     employee-count: 10000

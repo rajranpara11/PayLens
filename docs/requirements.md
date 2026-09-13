@@ -15,9 +15,9 @@ Salary data lives in Excel. At 10k people and multiple countries that is slow, e
 
 ## In scope
 
-- Web UI for one HR role to create, view, update, and search employees.
-- Current base salary per employee: amount, ISO currency, pay frequency, effective date, optional reason.
-- Salary change that closes the previous current record and opens a new one (history-ready).
+- Web UI for one HR role to view, update, search, and deactivate employees (create/seed via API and seed tooling).
+- Current base salary per employee: amount, ISO currency, and effective date.
+- Salary changes as dated history rows (latest `effective_from ≤ today` is current; same-date upsert corrects in place).
 - Server-side pagination, search, and filters on the employee directory.
 - Dashboard analytics that never mix currencies.
 - Seed of 10,000 realistic employees across countries/currencies.
@@ -32,6 +32,8 @@ Salary data lives in Excel. At 10k people and multiple countries that is slow, e
 | Payroll run, tax, benefits, bonuses, equity | Different product; assessment is salary *management* and pay insight, not payroll engine |
 | Excel/CSV import-export | Goal is leave Excel; import is a later migration tool, not MVP |
 | FX conversion / org-wide “total payroll in USD” | Silent currency mixing is wrong; no reliable FX feed in MVP |
+| Pay frequency / change-reason fields | MVP tracks annual amount + currency + effective date; extra fields add schema without assessment value |
+| In-UI hire wizard | Onboarding is available via API + seed; directory focuses on manage/search/update |
 | Employee self-service, managers, multi-role RBAC | One persona: HR Manager |
 | Approvals, workflows, email | Process overhead; one user can edit directly |
 | Multi-tenant / multi-company | ACME is one org |

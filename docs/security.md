@@ -10,14 +10,14 @@ PayLens uses **Spring Security with a single HR Manager account** and an **HTTP 
 | Password storage | BCrypt hash in memory after startup; secrets from env |
 | Session | Server-side HTTP session, `HttpOnly` + `SameSite=Lax` cookie |
 | API protection | `/api/v1/**` requires `ROLE_HR_MANAGER` |
-| Public | `POST /api/v1/auth/login`, `GET /actuator/health`, OpenAPI/Swagger |
+| Public | `POST /api/v1/auth/login`, `GET /actuator/health`; OpenAPI/Swagger only when `paylens.security.expose-api-docs=true` (off in `prod`) |
 | Frontend | Login page, `authGuard`, credentials on every request, 401 → login |
 
 This is intentionally **not** OAuth/SSO, LDAP, or a multi-tenant IdP. Those add deploy complexity without helping an HR-demo assessment.
 
 ## Secrets (never in source)
 
-Set environment variables before running the API:
+Set environment variables before running the API (**required** — there are no default HR credentials):
 
 ```bash
 export PAYLENS_HR_USERNAME='hr.manager'
@@ -31,14 +31,13 @@ export PAYLENS_CORS_ORIGINS='http://localhost:4200'
 PowerShell:
 
 ```powershell
-$env:PAYLENS_HR_USERNAME = "admin"
-$env:PAYLENS_HR_PASSWORD = "admin"
+$env:PAYLENS_HR_USERNAME = "hr.manager"
+$env:PAYLENS_HR_PASSWORD = "choose-a-strong-password"
 # Start the API in THIS same PowerShell window (or restart the IDE debug session after setting env).
 ```
 
-**`dev` profile** defaults to `admin` / `admin` when env vars are missing (IDE-friendly).
+**Important:** `PAYLENS_HR_PASSWORD_HASH` must be a real BCrypt string (starts with `$2a$` / `$2b$` / `$2y$`). Putting plaintext like `admin` in the hash field breaks login. Use `PAYLENS_HR_PASSWORD` for local plaintext bootstrap.
 
-**Important:** `PAYLENS_HR_PASSWORD_HASH` must be a real BCrypt string (starts with `$2a$` / `$2b$` / `$2y$`). Putting plaintext like `admin` in the hash field breaks login — the app used to treat that as the stored password hash. Use `PAYLENS_HR_PASSWORD` for local plaintext bootstrap.
 Generate a BCrypt hash (example with Spring):
 
 ```text
@@ -50,6 +49,7 @@ new BCryptPasswordEncoder().encode("your-password")
 - Do not commit plaintext passwords or hashes that unlock production.
 - Prefer `PAYLENS_HR_PASSWORD_HASH` in deployed environments.
 - `PAYLENS_HR_PASSWORD` is accepted only as a bootstrap convenience: the app encodes it with BCrypt at startup and does not persist the plaintext.
+- **`prod` profile:** session cookie `Secure` defaults to **true** (`PAYLENS_SESSION_COOKIE_SECURE`). Local Docker Compose sets it to `false` for HTTP. OpenAPI/Swagger are disabled and not publicly permitted.
 
 The `test` profile uses a local-only password (`test-hr-password`) for automated tests.
 

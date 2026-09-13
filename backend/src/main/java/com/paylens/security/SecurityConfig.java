@@ -77,24 +77,30 @@ public class SecurityConfig {
 
     @Bean
     @Order(0)
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            ObjectMapper objectMapper,
+            SecurityProperties securityProperties
+    ) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/auth/login").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers(
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers("/api/v1/auth/login").permitAll()
+                            .requestMatchers("/actuator/health", "/actuator/health/**").permitAll();
+                    if (securityProperties.isExposeApiDocs()) {
+                        auth.requestMatchers(
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**"
-                        ).permitAll()
-                        .requestMatchers("/api/v1/**").hasRole(ROLE_HR_MANAGER)
-                        .anyRequest().denyAll()
-                )
+                        ).permitAll();
+                    }
+                    auth.requestMatchers("/api/v1/**").hasRole(ROLE_HR_MANAGER)
+                            .anyRequest().denyAll();
+                })
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
                                 SecurityErrorWriter.write(

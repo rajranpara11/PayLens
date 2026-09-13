@@ -22,3 +22,4 @@ paylens:
     hr-username: hr.manager
     # Test-only bootstrap secret (encoded with BCrypt at startup; never used in prod profiles).
     hr-password: test-hr-password
+    expose-api-docs: true

@@ -69,4 +69,25 @@ describe('AnalyticsService', () => {
       currencyNote: 'grouped by currency',
     });
   });
+
+  it('clearCache drops TTL entries so next call refetches', () => {
+    service.getOverview().subscribe();
+    httpMock.expectOne(`${environment.apiBaseUrl}/analytics/overview`).flush({
+      totalEmployees: 1,
+      employedEmployees: 1,
+      compensationByCurrency: [],
+      currencyNote: 'grouped by currency',
+    });
+
+    service.clearCache();
+    service.getOverview().subscribe((overview) => {
+      expect(overview.totalEmployees).toBe(2);
+    });
+    httpMock.expectOne(`${environment.apiBaseUrl}/analytics/overview`).flush({
+      totalEmployees: 2,
+      employedEmployees: 2,
+      compensationByCurrency: [],
+      currencyNote: 'grouped by currency',
+    });
+  });
 });

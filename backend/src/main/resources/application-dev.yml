@@ -1,4 +1,4 @@
-# Local/dev overrides. Credentials still come from the environment — never commit secrets.
+# Local/dev overrides. Credentials must come from the environment — never commit secrets.
 spring:
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/paylens}
@@ -12,9 +12,9 @@ logging:
     com.paylens: INFO
     org.flywaydb: INFO
 
-# Local-only defaults so IDE/debugger starts work without env.
-# Override anytime with PAYLENS_HR_* env vars. Never put plaintext in hr-password-hash.
+# Local bootstrap — set in the same shell / IDE run config before starting the API:
+#   PAYLENS_HR_USERNAME / PAYLENS_HR_PASSWORD (or PAYLENS_HR_PASSWORD_HASH)
+# No credential defaults here (avoids accidental admin/admin on misconfigured hosts).
 paylens:
   security:
-    hr-username: ${PAYLENS_HR_USERNAME:admin}
-    hr-password: ${PAYLENS_HR_PASSWORD:admin}
+    expose-api-docs: true
