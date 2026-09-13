@@ -54,4 +54,10 @@ class PayLensApplicationTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("PayLens API");
     }
+
+    @Test
+    void employeeApiIsProtected() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/api/v1/employees", String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
 }

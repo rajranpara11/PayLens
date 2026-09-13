@@ -1,9 +1,14 @@
 package com.paylens.salary;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paylens.employee.dto.SalaryRequest;
-import com.paylens.employee.dto.SalaryResponse;
 import com.paylens.employee.entity.Department;
 import com.paylens.employee.entity.Employee;
 import com.paylens.employee.entity.EmploymentStatus;
@@ -17,20 +22,23 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 class SalaryApiIntegrationTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private DepartmentRepository departmentRepository;
@@ -76,94 +84,73 @@ class SalaryApiIntegrationTest {
     }
 
     @Test
-    void getCurrentSalary() {
-        ResponseEntity<SalaryResponse> response = restTemplate.getForEntity(
-                "/api/v1/employees/{id}/salary",
-                SalaryResponse.class,
-                employeeId
-        );
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().annualSalary()).isEqualByComparingTo("90000.00");
-        assertThat(response.getBody().currency()).isEqualTo("USD");
+    void getCurrentSalary() throws Exception {
+        mockMvc.perform(get("/api/v1/employees/{id}/salary", employeeId).with(hr()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.annualSalary").value(90000.00))
+                .andExpect(jsonPath("$.currency").value("USD"));
     }
 
     @Test
-    void updateSalaryAppendsHistory() {
+    void updateSalaryAppendsHistory() throws Exception {
         SalaryRequest raise = new SalaryRequest(new BigDecimal("105000.00"), "USD", LocalDate.of(2024, 1, 1));
 
-        ResponseEntity<SalaryResponse> updated = restTemplate.exchange(
-                "/api/v1/employees/{id}/salary",
-                HttpMethod.PUT,
-                new HttpEntity<>(raise),
-                SalaryResponse.class,
-                employeeId
-        );
+        mockMvc.perform(put("/api/v1/employees/{id}/salary", employeeId)
+                        .with(hr())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(raise)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.annualSalary").value(105000.00));
 
-        assertThat(updated.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(updated.getBody().annualSalary()).isEqualByComparingTo("105000.00");
+        mockMvc.perform(get("/api/v1/employees/{id}/salary-history", employeeId).with(hr()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].effectiveFrom").value("2024-01-01"))
+                .andExpect(jsonPath("$[1].annualSalary").value(90000.00));
 
-        ResponseEntity<SalaryResponse[]> history = restTemplate.getForEntity(
-                "/api/v1/employees/{id}/salary-history",
-                SalaryResponse[].class,
-                employeeId
-        );
-        assertThat(history.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(history.getBody()).hasSize(2);
-        assertThat(history.getBody()[0].effectiveFrom()).isEqualTo(LocalDate.of(2024, 1, 1));
-        assertThat(history.getBody()[1].annualSalary()).isEqualByComparingTo("90000.00");
         assertThat(salaryRepository.findByEmployee_IdOrderByEffectiveFromDesc(employeeId)).hasSize(2);
     }
 
     @Test
-    void retrieveSalaryHistory() {
-        ResponseEntity<SalaryResponse[]> history = restTemplate.getForEntity(
-                "/api/v1/employees/{id}/salary-history",
-                SalaryResponse[].class,
-                employeeId
-        );
-
-        assertThat(history.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(history.getBody()).hasSize(1);
+    void retrieveSalaryHistory() throws Exception {
+        mockMvc.perform(get("/api/v1/employees/{id}/salary-history", employeeId).with(hr()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
     }
 
     @Test
-    void invalidSalary() {
+    void invalidSalary() throws Exception {
         SalaryRequest invalid = new SalaryRequest(new BigDecimal("-5"), "USD", LocalDate.of(2024, 2, 1));
 
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/api/v1/employees/{id}/salary",
-                HttpMethod.PUT,
-                new HttpEntity<>(invalid),
-                String.class,
-                employeeId
-        );
+        mockMvc.perform(put("/api/v1/employees/{id}/salary", employeeId)
+                        .with(hr())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isUnprocessableEntity());
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         assertThat(salaryRepository.findByEmployee_IdOrderByEffectiveFromDesc(employeeId)).hasSize(1);
     }
 
     @Test
-    void invalidCurrency() {
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/api/v1/employees/{id}/salary",
-                HttpMethod.PUT,
-                new HttpEntity<>(new SalaryRequest(new BigDecimal("1000"), "ZZZ", LocalDate.of(2024, 2, 1))),
-                String.class,
-                employeeId
-        );
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    void invalidCurrency() throws Exception {
+        mockMvc.perform(put("/api/v1/employees/{id}/salary", employeeId)
+                        .with(hr())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new SalaryRequest(new BigDecimal("1000"), "ZZZ", LocalDate.of(2024, 2, 1)))))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
-    void nonexistentEmployee() {
+    void nonexistentEmployee() throws Exception {
         UUID missing = UUID.randomUUID();
+        mockMvc.perform(get("/api/v1/employees/{id}/salary", missing).with(hr()))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/employees/{id}/salary-history", missing).with(hr()))
+                .andExpect(status().isNotFound());
+    }
 
-        assertThat(restTemplate.getForEntity("/api/v1/employees/{id}/salary", String.class, missing)
-                .getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(restTemplate.getForEntity("/api/v1/employees/{id}/salary-history", String.class, missing)
-                .getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    private static RequestPostProcessor hr() {
+        return user("hr.manager").roles("HR_MANAGER");
     }
 }

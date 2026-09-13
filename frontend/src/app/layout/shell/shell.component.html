@@ -38,10 +38,14 @@
         <div class="persona">
           <span class="persona-avatar" aria-hidden="true">HR</span>
           <div>
-            <strong>HR Manager</strong>
-            <small>ACME Corp</small>
+            <strong>{{ auth.currentUser()?.username || 'HR Manager' }}</strong>
+            <small>HR Manager</small>
           </div>
         </div>
+        <button mat-stroked-button type="button" class="logout-btn" (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          Sign out
+        </button>
       </div>
     </div>
   </mat-sidenav>

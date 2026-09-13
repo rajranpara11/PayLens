@@ -1,0 +1,57 @@
+<div class="login-page">
+  <section class="login-card pl-panel">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">P</span>
+      <div>
+        <h1>PayLens</h1>
+        <p>HR Manager sign-in</p>
+      </div>
+    </div>
+
+    @if (sessionNotice) {
+      <p class="notice" role="status">{{ sessionNotice }}</p>
+    }
+
+    @if (errorMessage) {
+      <p class="error" role="alert">{{ errorMessage }}</p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Username</mat-label>
+        <input matInput formControlName="username" autocomplete="username" />
+        @if (form.controls.username.hasError('required')) {
+          <mat-error>Required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Password</mat-label>
+        <input
+          matInput
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+        />
+        @if (form.controls.password.hasError('required')) {
+          <mat-error>Required</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="submit"
+        [disabled]="submitting"
+        [attr.aria-label]="submitting ? 'Signing in' : 'Sign in'"
+      >
+        @if (submitting) {
+          <mat-spinner diameter="18"></mat-spinner>
+        } @else {
+          Sign in
+        }
+      </button>
+    </form>
+  </section>
+</div>
