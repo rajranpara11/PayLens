@@ -1,61 +1,188 @@
 .login-page {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
+  padding: 1.75rem 1.25rem;
+  overflow: hidden;
   background:
-    radial-gradient(ellipse 70% 50% at 10% 0%, rgba(15, 118, 110, 0.16), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 100% 10%, rgba(18, 38, 58, 0.1), transparent 50%),
-    linear-gradient(180deg, #e9eef3 0%, #e4ebf2 100%);
+    radial-gradient(ellipse 90% 70% at 12% -10%, rgba(20, 184, 166, 0.28), transparent 55%),
+    radial-gradient(ellipse 70% 55% at 92% 8%, rgba(22, 50, 74, 0.35), transparent 52%),
+    radial-gradient(ellipse 55% 45% at 70% 95%, rgba(15, 118, 110, 0.18), transparent 50%),
+    linear-gradient(155deg, #0f2438 0%, #16324a 42%, #0f3d3a 100%);
+}
+
+.login-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  color: rgba(159, 232, 223, 0.22);
+}
+
+.grid-wash {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(232, 238, 244, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 238, 244, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+  animation: drift 18s ease-in-out infinite;
+}
+
+.orb-a {
+  width: 22rem;
+  height: 22rem;
+  top: -6rem;
+  left: -4rem;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.45), transparent 68%);
+}
+
+.orb-b {
+  width: 18rem;
+  height: 18rem;
+  right: -3rem;
+  top: 18%;
+  background: radial-gradient(circle, rgba(159, 232, 223, 0.28), transparent 70%);
+  animation-delay: -6s;
+}
+
+.orb-c {
+  width: 26rem;
+  height: 26rem;
+  left: 35%;
+  bottom: -10rem;
+  background: radial-gradient(circle, rgba(18, 38, 58, 0.55), transparent 70%);
+  animation-delay: -11s;
+}
+
+.beam {
+  position: absolute;
+  top: -20%;
+  right: 8%;
+  width: 18rem;
+  height: 140%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(20, 184, 166, 0.12) 40%,
+    transparent 78%
+  );
+  transform: rotate(18deg);
+  filter: blur(18px);
+  animation: shimmer 10s ease-in-out infinite;
+}
+
+.chart-motif {
+  position: absolute;
+  right: max(4%, 2rem);
+  bottom: 8%;
+  width: min(42vw, 26rem);
+  opacity: 0.55;
+  animation: rise-in 1.1s ease-out both;
+}
+
+.chart-bars rect {
+  opacity: 0.55;
+}
+
+.chart-bars rect:nth-child(odd) {
+  opacity: 0.35;
+}
+
+.chart-line {
+  stroke-dasharray: 520;
+  stroke-dashoffset: 520;
+  animation: draw-line 2.2s ease-out 0.35s forwards;
 }
 
 .login-card {
-  width: min(100%, 26rem);
-  padding: 1.75rem 1.6rem 1.5rem;
+  position: relative;
+  z-index: 1;
+  width: min(100%, 26.5rem);
+  padding: 2rem 1.75rem 1.7rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 1px 2px rgba(8, 20, 32, 0.08),
+    0 24px 48px rgba(8, 20, 32, 0.28);
+  animation: card-in 0.55s ease-out both;
+  backdrop-filter: blur(10px);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  margin-bottom: 1.35rem;
+  gap: 0.9rem;
+  margin-bottom: 0.85rem;
 }
 
 .mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 10px;
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 12px;
   background: linear-gradient(145deg, #14b8a6, #0f766e);
   color: #fff;
   font-family: var(--pl-display);
+  font-size: 1.25rem;
   font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 8px 18px rgba(15, 118, 110, 0.28);
 }
 
 .brand h1 {
   margin: 0;
   font-family: var(--pl-display);
-  font-size: 1.55rem;
+  font-size: 1.75rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  color: var(--pl-ink);
 }
 
 .brand p {
-  margin: 0.15rem 0 0;
+  margin: 0.2rem 0 0;
   color: var(--pl-muted);
   font-size: 0.9rem;
+}
+
+.tagline {
+  margin: 0 0 1.25rem;
+  color: var(--pl-ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .full {
   width: 100%;
 }
 
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+form .full {
+  margin: 0;
+}
+
 .notice,
 .error {
-  margin: 0 0 0.9rem;
-  padding: 0.65rem 0.75rem;
+  margin: 0 0 0.95rem;
+  padding: 0.7rem 0.8rem;
   border-radius: 8px;
   font-size: 0.88rem;
   line-height: 1.4;
@@ -64,15 +191,88 @@
 .notice {
   background: var(--pl-warn-soft);
   color: var(--pl-warn);
+  border: 1px solid rgba(154, 103, 0, 0.14);
 }
 
 .error {
   background: var(--pl-danger-soft);
   color: var(--pl-danger);
+  border: 1px solid rgba(180, 35, 24, 0.12);
 }
 
 .submit {
   width: 100%;
-  height: 2.75rem;
-  margin-top: 0.35rem;
+  height: 2.9rem;
+  margin-top: 0.55rem;
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18px, -22px, 0) scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 0.55;
+    transform: translateY(0);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 720px) {
+  .chart-motif {
+    width: min(70vw, 18rem);
+    opacity: 0.35;
+    bottom: 4%;
+    right: 2%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .beam,
+  .chart-line,
+  .chart-motif,
+  .login-card {
+    animation: none !important;
+  }
+
+  .chart-line {
+    stroke-dashoffset: 0;
+  }
 }

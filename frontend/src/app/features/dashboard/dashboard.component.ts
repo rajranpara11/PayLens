@@ -1,6 +1,8 @@
 import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   OnDestroy,
@@ -71,9 +73,10 @@ const CHART_GRID = 'rgba(18, 38, 58, 0.08)';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly analyticsService = inject(AnalyticsService);
   private readonly notifications = inject(NotificationService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild('headcountCanvas') headcountCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('payrollCanvas') payrollCanvas?: ElementRef<HTMLCanvasElement>;
@@ -104,6 +107,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  ngAfterViewInit(): void {
+    // First paint of canvases happens after loading flips false — retry render once.
+    if (this.overview) {
+      this.queueChartRender();
+    }
   }
 
   ngOnDestroy(): void {
@@ -147,6 +157,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.insights = buildCompensationInsights(data);
         this.loading = false;
         this.destroyCharts();
+        // Canvases are behind @if (overview); force CD so ViewChild nodes exist.
+        this.cdr.detectChanges();
         this.queueChartRender();
       },
       error: (error: HttpErrorResponse) => {
@@ -218,7 +230,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private queueChartRender(): void {
     this.clearRenderTimer();
-    this.renderTimer = setTimeout(() => this.renderCharts(), 0);
+    // Double rAF: wait for layout after @if canvases mount (first load used to miss ViewChild).
+    this.renderTimer = setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.renderCharts();
+          this.renderTimer = null;
+        });
+      });
+    }, 0);
   }
 
   private clearRenderTimer(): void {

@@ -6,7 +6,7 @@
 
 <section class="filters-panel pl-panel">
   <form class="filters" [formGroup]="filters" (ngSubmit)="$event.preventDefault()">
-    <mat-form-field appearance="outline" class="search" subscriptSizing="dynamic">
+    <mat-form-field appearance="outline" class="search" subscriptSizing="dynamic" floatLabel="always">
       <mat-label>Search</mat-label>
       <input
         matInput
@@ -17,7 +17,7 @@
       <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" floatLabel="always">
       <mat-label>Country</mat-label>
       <mat-select formControlName="country" (selectionChange)="onFilterChange()">
         <mat-option value="">All countries</mat-option>
@@ -27,7 +27,7 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" floatLabel="always">
       <mat-label>Department</mat-label>
       <mat-select formControlName="department" (selectionChange)="onFilterChange()">
         <mat-option value="">All departments</mat-option>
@@ -37,16 +37,16 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" floatLabel="always">
       <mat-label>Designation</mat-label>
-    <input
-      matInput
-      formControlName="designation"
-      placeholder="e.g. Engineer"
-    />
-  </mat-form-field>
+      <input
+        matInput
+        formControlName="designation"
+        placeholder="e.g. Engineer"
+      />
+    </mat-form-field>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" floatLabel="always">
       <mat-label>Status</mat-label>
       <mat-select formControlName="employmentStatus" (selectionChange)="onFilterChange()">
         <mat-option value="">All statuses</mat-option>
@@ -157,7 +157,13 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let row" (click)="$event.stopPropagation()">
-            <a mat-stroked-button color="primary" [routerLink]="['/employees', row.id]">
+            <a
+              mat-stroked-button
+              color="primary"
+              class="action-btn"
+              [routerLink]="['/employees', row.id]"
+              [attr.aria-label]="'View ' + fullName(row)"
+            >
               View
             </a>
           </td>

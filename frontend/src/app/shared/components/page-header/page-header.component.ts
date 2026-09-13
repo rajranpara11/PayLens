@@ -26,13 +26,13 @@ import { Component, Input } from '@angular/core';
       align-items: flex-end;
       justify-content: space-between;
       gap: 1rem 1.5rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1.15rem;
+      margin-bottom: 1.55rem;
+      padding-bottom: 1.2rem;
       border-bottom: 1px solid rgba(215, 224, 234, 0.95);
     }
     .eyebrow {
-      margin: 0 0 0.35rem;
-      font-size: 0.72rem;
+      margin: 0 0 0.4rem;
+      font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -49,7 +49,7 @@ import { Component, Input } from '@angular/core';
     }
     .subtitle {
       margin: 0.45rem 0 0;
-      max-width: 40rem;
+      max-width: 42rem;
       color: var(--pl-muted);
       font-size: 0.95rem;
       line-height: 1.45;

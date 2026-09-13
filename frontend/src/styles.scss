@@ -1,4 +1,4 @@
-/* PayLens design tokens — cool slate + teal HR system */
+/* PayLens design tokens — cool slate + teal enterprise HR SaaS */
 :root {
   --pl-ink: #12263a;
   --pl-ink-soft: #3a4f63;
@@ -9,6 +9,7 @@
   --pl-accent-mid: #14b8a6;
   --pl-surface: #ffffff;
   --pl-surface-2: #f7f9fb;
+  --pl-surface-3: #f0f4f8;
   --pl-border: #d7e0ea;
   --pl-border-strong: #b8c5d4;
   --pl-danger: #b42318;
@@ -18,11 +19,19 @@
   --pl-ok: #0f6b3c;
   --pl-ok-soft: #e4f5ea;
   --pl-shadow: 0 1px 2px rgba(18, 38, 58, 0.04), 0 8px 24px rgba(18, 38, 58, 0.06);
+  --pl-shadow-sm: 0 1px 2px rgba(18, 38, 58, 0.05);
   --pl-radius: 12px;
   --pl-radius-sm: 8px;
+  --pl-radius-lg: 16px;
   --pl-font: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
   --pl-display: 'Fraunces', Georgia, serif;
   --pl-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --pl-nav-expanded: 272px;
+  --pl-nav-collapsed: 76px;
+  --pl-focus-ring: 0 0 0 3px rgba(18, 38, 58, 0.16);
+  --pl-field-label: #6b7c8d;
+  --pl-field-value: #12263a;
+  --pl-field-border-focus: #5a6b7c;
 }
 
 html,
@@ -36,10 +45,12 @@ body {
   color: var(--pl-ink);
   background-color: #e8eef4;
   background-image:
-    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(15, 118, 110, 0.12), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(18, 38, 58, 0.08), transparent 50%),
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(15, 118, 110, 0.1), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(18, 38, 58, 0.07), transparent 50%),
     linear-gradient(180deg, #e9eef3 0%, #e4ebf2 100%);
   background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -51,18 +62,24 @@ code {
   font-size: 0.9em;
 }
 
-/* Shared status chip — soft rectangle, not pill cluster */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--pl-focus-ring);
+}
+
+/* Shared status chip */
 .pl-status {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.55rem;
+  padding: 0.22rem 0.6rem;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   background: #eef2f6;
   color: var(--pl-ink-soft);
   border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .pl-status[data-status='ACTIVE'] {
@@ -96,9 +113,91 @@ code {
   font-size: 0.92em;
 }
 
-/* Material density / outline polish */
+/* Material form fields — neutral focus, clear label vs value contrast */
 .mat-mdc-form-field {
+  --mdc-theme-primary: var(--pl-field-border-focus);
+  --mat-form-field-outlined-outline-color: var(--pl-border);
+  --mat-form-field-outlined-hover-outline-color: var(--pl-border-strong);
+  --mat-form-field-outlined-focus-outline-color: var(--pl-field-border-focus);
+  --mat-form-field-outlined-label-text-color: var(--pl-field-label);
+  --mat-form-field-outlined-hover-label-text-color: var(--pl-ink-soft);
+  --mat-form-field-outlined-focus-label-text-color: var(--pl-ink-soft);
+  --mat-form-field-outlined-input-text-color: var(--pl-field-value);
+  --mat-form-field-outlined-caret-color: var(--pl-ink);
   --mdc-outlined-text-field-container-shape: 10px;
+  --mdc-outlined-text-field-outline-color: var(--pl-border);
+  --mdc-outlined-text-field-hover-outline-color: var(--pl-border-strong);
+  --mdc-outlined-text-field-focus-outline-color: var(--pl-field-border-focus);
+  --mdc-outlined-text-field-label-text-color: var(--pl-field-label);
+  --mdc-outlined-text-field-hover-label-text-color: var(--pl-ink-soft);
+  --mdc-outlined-text-field-focus-label-text-color: var(--pl-ink-soft);
+  --mdc-outlined-text-field-input-text-color: var(--pl-field-value);
+  --mdc-outlined-text-field-caret-color: var(--pl-ink);
+  --mdc-outlined-text-field-disabled-input-text-color: var(--pl-muted);
+  --mdc-outlined-text-field-disabled-label-text-color: var(--pl-muted);
+  --mat-form-field-focus-select-arrow-color: var(--pl-ink-soft);
+  --mat-select-focused-arrow-color: var(--pl-ink-soft);
+  --mat-select-enabled-arrow-color: var(--pl-muted);
+  --mat-option-selected-state-label-text-color: var(--pl-ink);
+}
+
+.mat-mdc-form-field .mdc-floating-label {
+  color: var(--pl-field-label) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em;
+}
+
+.mat-mdc-form-field.mat-focused .mdc-floating-label {
+  color: var(--pl-ink-soft) !important;
+}
+
+.mat-mdc-form-field .mat-mdc-form-field-input-control,
+.mat-mdc-form-field .mat-mdc-input-element,
+.mat-mdc-form-field .mat-mdc-select-value,
+.mat-mdc-form-field .mat-mdc-select-value-text {
+  color: var(--pl-field-value) !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.mat-mdc-form-field .mat-mdc-input-element::placeholder,
+.mat-mdc-form-field input.mat-mdc-input-element::placeholder,
+.mat-mdc-form-field .mdc-text-field__input::placeholder {
+  color: #7d8b99 !important;
+  -webkit-text-fill-color: #7d8b99 !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+/* MDC hides placeholders until focus when a floating label exists — keep them visible */
+.mat-mdc-form-field .mdc-text-field:not(.mdc-text-field--disabled) .mat-mdc-input-element::placeholder,
+.mat-mdc-form-field .mdc-text-field:not(.mdc-text-field--disabled) .mdc-text-field__input::placeholder {
+  opacity: 1 !important;
+}
+
+.mat-mdc-form-field .mat-mdc-form-field-hint,
+.mat-mdc-form-field .mat-mdc-form-field-subscript-wrapper {
+  color: var(--pl-muted);
+}
+
+.mat-mdc-form-field .mat-mdc-form-field-icon-suffix,
+.mat-mdc-form-field .mat-icon {
+  color: var(--pl-muted);
+}
+
+/* Neutral focus — no teal ring; keep Material notch/float geometry intact */
+.mat-mdc-form-field .mat-mdc-input-element:focus,
+.mat-mdc-form-field .mat-mdc-input-element:focus-visible,
+.mat-mdc-select:focus,
+.mat-mdc-select:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.mat-mdc-form-field.mat-focused .mdc-notched-outline .mdc-notched-outline__leading,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline .mdc-notched-outline__notch,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline .mdc-notched-outline__trailing {
+  border-color: var(--pl-field-border-focus) !important;
 }
 
 .mat-mdc-outlined-button,
@@ -116,9 +215,13 @@ code {
   --mdc-filled-button-label-text-color: #fff;
 }
 
+.mat-mdc-unelevated-button.mat-primary:hover {
+  --mdc-filled-button-container-color: var(--pl-accent-strong);
+}
+
 .mat-mdc-outlined-button.mat-primary {
-  --mdc-outlined-button-label-text-color: var(--pl-accent-strong);
-  --mdc-outlined-button-outline-color: rgba(15, 118, 110, 0.35);
+  --mdc-outlined-button-label-text-color: var(--pl-ink-soft);
+  --mdc-outlined-button-outline-color: var(--pl-border-strong);
 }
 
 .mat-mdc-standard-chip {
@@ -131,30 +234,40 @@ code {
 
 .mat-mdc-header-row {
   background: var(--pl-surface-2);
+  height: 48px;
 }
 
 .mat-mdc-header-cell {
   color: var(--pl-muted) !important;
-  font-size: 0.72rem !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
-  letter-spacing: 0.04em !important;
+  letter-spacing: 0.05em !important;
   text-transform: uppercase;
   border-bottom-color: var(--pl-border) !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
 }
 
 .mat-mdc-cell {
   color: var(--pl-ink);
   border-bottom-color: #e8eef4 !important;
   font-size: 0.9rem !important;
+  padding-top: 0.95rem !important;
+  padding-bottom: 0.95rem !important;
 }
 
 .mat-mdc-row:last-child .mat-mdc-cell {
   border-bottom: none !important;
 }
 
+.mat-mdc-row:hover .mat-mdc-cell {
+  background: rgba(15, 118, 110, 0.035);
+}
+
 .mat-mdc-paginator {
   background: var(--pl-surface-2) !important;
   border-top: 1px solid var(--pl-border);
+  min-height: 56px;
 }
 
 .mat-mdc-progress-bar {
@@ -168,5 +281,43 @@ code {
 }
 
 .mat-mdc-dialog-container .mdc-dialog__surface {
-  border-radius: 16px !important;
+  border-radius: var(--pl-radius-lg) !important;
+  box-shadow: 0 16px 48px rgba(18, 38, 58, 0.16) !important;
+}
+
+/* Shared dialog chrome — width constrained by MatDialog maxWidth */
+.pl-dialog .mat-mdc-dialog-container,
+.pl-dialog.mat-mdc-dialog-container {
+  max-width: min(40rem, 96vw) !important;
+}
+
+.pl-dialog .mdc-dialog__surface {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.pl-dialog .mat-mdc-dialog-title {
+  font-family: var(--pl-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  padding: 1.25rem 1.5rem 0.5rem !important;
+  margin: 0 !important;
+}
+
+.pl-dialog .mat-mdc-dialog-content {
+  max-width: 100%;
+  padding: 0.5rem 1.5rem 0.75rem !important;
+}
+
+.pl-dialog .mat-mdc-dialog-actions {
+  padding: 0.85rem 1.5rem 1.15rem !important;
+  border-top: 1px solid var(--pl-border);
+  background: var(--pl-surface-2);
+  margin: 0 !important;
+  gap: 0.5rem;
+}
+
+.mat-mdc-tooltip {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
 }

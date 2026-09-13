@@ -150,6 +150,9 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
       this.dialog
         .open(EditEmployeeDialogComponent, {
           width: '40rem',
+          maxWidth: '96vw',
+          panelClass: 'pl-dialog',
+          autoFocus: 'first-tabbable',
           data,
           disableClose: true,
         })
@@ -187,6 +190,8 @@ export class EmployeeDetailComponent implements OnInit, OnDestroy {
     this.dialog
       .open(UpdateSalaryDialogComponent, {
         width: '28rem',
+        maxWidth: '96vw',
+        panelClass: 'pl-dialog',
         data,
         disableClose: true,
       })

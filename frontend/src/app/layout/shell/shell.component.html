@@ -1,8 +1,15 @@
 @let isHandset = (isHandset$ | async) ?? false;
+@let collapsed = !isHandset && navCollapsed();
 
-<mat-sidenav-container class="shell">
+<mat-sidenav-container
+  class="shell"
+  [class.nav-collapsed]="collapsed"
+  [class.is-handset]="isHandset"
+  autosize
+>
   <mat-sidenav
     class="shell-nav"
+    [class.collapsed]="collapsed"
     [mode]="isHandset ? 'over' : 'side'"
     [opened]="!isHandset"
     [fixedInViewport]="isHandset"
@@ -13,38 +20,80 @@
         <span class="brand-mark" aria-hidden="true">
           <span class="brand-mark-inner">P</span>
         </span>
-        <div class="brand-copy">
-          <strong>PayLens</strong>
-          <small>ACME compensation</small>
-        </div>
+        @if (!collapsed) {
+          <div class="brand-copy">
+            <strong>PayLens</strong>
+            <small>ACME compensation</small>
+          </div>
+        }
+        @if (!isHandset) {
+          <button
+            mat-icon-button
+            type="button"
+            class="collapse-btn"
+            [attr.aria-label]="collapsed ? 'Expand navigation' : 'Collapse navigation'"
+            [attr.aria-expanded]="!collapsed"
+            [matTooltip]="collapsed ? 'Expand menu' : 'Collapse menu'"
+            matTooltipPosition="right"
+            (click)="toggleNavCollapsed()"
+          >
+            <mat-icon aria-hidden="true">{{
+              collapsed ? 'chevron_right' : 'chevron_left'
+            }}</mat-icon>
+          </button>
+        }
       </div>
 
-      <p class="nav-label">Workspace</p>
-      <nav class="nav-list">
+      @if (!collapsed) {
+        <p class="nav-label">Workspace</p>
+      }
+
+      <nav class="nav-list" aria-label="Primary">
         @for (item of navItems; track item.path) {
           <a
             class="nav-link"
             [routerLink]="item.path"
             routerLinkActive="active"
+            [matTooltip]="item.label"
+            [matTooltipDisabled]="!collapsed"
+            matTooltipPosition="right"
+            [attr.aria-label]="item.label"
             (click)="isHandset && drawer.close()"
           >
-            <mat-icon>{{ item.icon }}</mat-icon>
-            <span>{{ item.label }}</span>
+            <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+            @if (!collapsed) {
+              <span>{{ item.label }}</span>
+            }
           </a>
         }
       </nav>
 
       <div class="nav-footer">
-        <div class="persona">
+        <div class="persona" [class.persona-compact]="collapsed">
           <span class="persona-avatar" aria-hidden="true">HR</span>
-          <div>
-            <strong>{{ auth.currentUser()?.username || 'HR Manager' }}</strong>
-            <small>HR Manager</small>
-          </div>
+          @if (!collapsed) {
+            <div>
+              <strong>{{ auth.currentUser()?.username || 'HR Manager' }}</strong>
+              <small>HR Manager</small>
+            </div>
+          }
         </div>
-        <button mat-stroked-button type="button" class="logout-btn" (click)="logout()">
-          <mat-icon>logout</mat-icon>
-          Sign out
+
+        <button
+          mat-stroked-button
+          type="button"
+          class="logout-btn"
+          [class.logout-compact]="collapsed"
+          [matTooltip]="'Sign out'"
+          [matTooltipDisabled]="!collapsed"
+          matTooltipPosition="right"
+          [attr.aria-label]="'Sign out'"
+          (click)="logout()"
+        >
+          <mat-icon aria-hidden="true">logout</mat-icon>
+          @if (!collapsed) {
+            Sign out
+          }
         </button>
       </div>
     </div>
